@@ -52,6 +52,17 @@ def handle_missing(
     raise ValueError(f"Unknown strategy: {strategy}")
 
 
+def min_max_normalize(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
+    """Scale numeric columns to the range [0, 1]."""
+    df = df.copy()
+    for col in columns:
+        col_min = df[col].min()
+        col_max = df[col].max()
+        denom = col_max - col_min
+        df[col] = 0.0 if denom == 0 else (df[col] - col_min) / denom
+    return df
+
+
 def z_score_normalize(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
     """Scale numeric columns to zero mean, unit variance."""
     df = df.copy()
