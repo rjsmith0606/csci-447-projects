@@ -1,3 +1,7 @@
+"""
+Preprocessing functions for cleaning and preparing data for machine learning.
+"""
+
 import numpy as np
 import pandas as pd
 
@@ -52,6 +56,16 @@ def z_score_normalize(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
         mean = df[col].mean()
         std = df[col].std()
         df[col] = 0.0 if std == 0 else (df[col] - mean) / std
+    return df
+
+def min_max_normalize(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
+    """Scale numeric columns to the range [0, 1]."""
+    df = df.copy()
+    for col in columns:
+        col_min = df[col].min()
+        col_max = df[col].max()
+        denom = col_max - col_min
+        df[col] = 0.0 if denom == 0 else (df[col] - col_min) / denom
     return df
 
 
@@ -116,20 +130,18 @@ def preprocess_breast_cancer(df: pd.DataFrame) -> pd.DataFrame:
     numeric_cols = [c for c in df.columns if c != "class"] 
     df = handle_missing(df, numeric_cols, strategy="mode", missing_values=["?"])
     df[numeric_cols] = df[numeric_cols].astype(float)
-    df = z_score_normalize(df, numeric_cols)
+    df = min_max_normalize(df, numeric_cols)
     return df
 
 
 def preprocess_car_evaluation(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy()
     feature_cols = [c for c in df.columns if c != "class"]
     df = one_hot_encode(df, feature_cols)
-
     return df
 
 
 def preprocess_house_votes(df: pd.DataFrame) -> pd.DataFrame:
-    # NOTE: "?" means "abstain" here, NOT missing -- treat it as its own
+    # "?" means "abstain" here, NOT missing -- treat it as its own
     # category rather than dropping/imputing it.
     feature_cols = [c for c in df.columns if c != "class"]
     df = one_hot_encode(df, feature_cols)
@@ -165,7 +177,7 @@ def preprocess_forest_fires(df: pd.DataFrame) -> pd.DataFrame:
     df = cyclic_encode(df, "day", period=7)
 
     numeric_cols = [c for c in df.columns if c not in ("area",)]
-    df = z_score_normalize(df, numeric_cols)
+    df = min_max_normalize(df, numeric_cols)
 
     df = log_transform(df, "area")
     return df
