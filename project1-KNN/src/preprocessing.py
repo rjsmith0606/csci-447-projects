@@ -15,7 +15,7 @@ def handle_missing(
     df: pd.DataFrame,
     columns: list[str],
     strategy: str = "drop_rows",
-    missing_values: list = None,
+    missing_values: list | None= None,
 ) -> pd.DataFrame:
     """
     Handle missing values in the given columns.
@@ -60,6 +60,42 @@ def one_hot_encode(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
     return pd.get_dummies(df, columns=columns)
 
 
+def label_encode(df: pd.DataFrame, columns: list[str], orderings: dict | None = None) -> pd.DataFrame:
+    """
+    Encode categorical columns as integers.
+ 
+    orderings: optional dict {column_name: [ordered_values]} to control
+    the integer assignment for ordinal features. If not provided for a
+    column, values are encoded in sorted order (fine for nominal features
+    you plan to treat as plain integers, e.g. month names -> 1-12).
+    """
+    df = df.copy()
+    orderings = orderings or {}
+    for col in columns:
+        if col in orderings:
+            mapping = {val: i for i, val in enumerate(orderings[col])}
+            df[col] = df[col].map(mapping)
+        else:
+            df[col] = df[col].astype("category").cat.codes
+    return df
+ 
+ 
+def cyclic_encode(df: pd.DataFrame, column: str, period: int) -> pd.DataFrame:
+    """
+    Encode a cyclic feature (e.g. month 1-12, day-of-week 0-6) as two
+    columns using sine/cosine so that, e.g., December and January end up
+    close together instead of far apart.
+ 
+    Assumes `column` is already numeric (use label_encode first if needed).
+    `period` is the number of steps in the full cycle (12 for months).
+    """
+    df = df.copy()
+    radians = 2 * np.pi * df[column] / period
+    df[f"{column}_sin"] = np.sin(radians)
+    df[f"{column}_cos"] = np.cos(radians)
+    return df.drop(columns=[column])
+
+
 def log_transform(df: pd.DataFrame, column: str) -> pd.DataFrame:
     """Apply ln(x + 1) transform to a skewed target (e.g. Forest Fires area)."""
     df = df.copy()
@@ -84,57 +120,55 @@ def preprocess_breast_cancer(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# def preprocess_car_evaluation(df: pd.DataFrame) -> pd.DataFrame:
-#     feature_cols = [c for c in df.columns if c != "class"]
-#     # All features treated as nominal per the assignment notes
-#     df = one_hot_encode(df, feature_cols)
-#     return df
+def preprocess_car_evaluation(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    feature_cols = [c for c in df.columns if c != "class"]
+    df = one_hot_encode(df, feature_cols)
+
+    return df
 
 
-# def preprocess_congressional_vote(df: pd.DataFrame) -> pd.DataFrame:
-#     # NOTE: "?" means "abstain" here, NOT missing -- treat it as its own
-#     # category rather than dropping/imputing it.
-#     feature_cols = [c for c in df.columns if c != "class"]
-#     df = one_hot_encode(df, feature_cols)
-#     return df
+def preprocess_house_votes(df: pd.DataFrame) -> pd.DataFrame:
+    # NOTE: "?" means "abstain" here, NOT missing -- treat it as its own
+    # category rather than dropping/imputing it.
+    feature_cols = [c for c in df.columns if c != "class"]
+    df = one_hot_encode(df, feature_cols)
+    return df
 
 
-# def preprocess_abalone(df: pd.DataFrame, encode_sex: bool = True) -> pd.DataFrame:
-#     numeric_cols = [c for c in df.columns if c not in ("sex", "rings")]
-#     df = z_score_normalize(df, numeric_cols)
-#     if encode_sex:
-#         df = one_hot_encode(df, ["sex"])
-#     else:
-#         df = drop_columns(df, ["sex"])
-#     return df
+def preprocess_abalone(df: pd.DataFrame) -> pd.DataFrame:
+    numeric_cols = [c for c in df.columns if c not in ("sex", "rings")]
+    df = z_score_normalize(df, numeric_cols)
+    df = drop_columns(df, ["sex"])
+    return df
 
 
-# def preprocess_computer_hardware(df: pd.DataFrame) -> pd.DataFrame:
-#     df = drop_columns(df, ["vendor_name", "model_name"])
-#     # Save ERP separately for later comparison -- don't use as a feature
-#     erp = df["erp"].copy() if "erp" in df.columns else None
-#     df = drop_columns(df, ["erp"])
-#     numeric_cols = [c for c in df.columns if c != "prp"]
-#     df = z_score_normalize(df, numeric_cols)
-#     return df, erp
+def preprocess_computer_hardware(df: pd.DataFrame) -> pd.DataFrame:
+    df = drop_columns(df, ["vendor_name", "model_name"])
+    # Save ERP separately for later comparison -- don't use as a feature
+    # erp = df["erp"].copy() if "erp" in df.columns else None
+    df = drop_columns(df, ["erp"])
+    numeric_cols = [c for c in df.columns if c != "prp"]
+    df = z_score_normalize(df, numeric_cols)
+    return df
 
 
-# def preprocess_forest_fires(df: pd.DataFrame) -> pd.DataFrame:
-#     month_order = ["jan", "feb", "mar", "apr", "may", "jun",
-#                    "jul", "aug", "sep", "oct", "nov", "dec"]
-#     day_order = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+def preprocess_forest_fires(df: pd.DataFrame) -> pd.DataFrame:
+    month_order = ["jan", "feb", "mar", "apr", "may", "jun",
+                   "jul", "aug", "sep", "oct", "nov", "dec"]
+    day_order = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 
-#     df = label_encode(df, ["month"], orderings={"month": month_order})
-#     df = cyclic_encode(df, "month", period=12)
+    df = label_encode(df, ["month"], orderings={"month": month_order})
+    df = cyclic_encode(df, "month", period=12)
 
-#     df = label_encode(df, ["day"], orderings={"day": day_order})
-#     df = cyclic_encode(df, "day", period=7)
+    df = label_encode(df, ["day"], orderings={"day": day_order})
+    df = cyclic_encode(df, "day", period=7)
 
-#     numeric_cols = [c for c in df.columns if c not in ("area",)]
-#     df = min_max_normalize(df, numeric_cols)
+    numeric_cols = [c for c in df.columns if c not in ("area",)]
+    df = z_score_normalize(df, numeric_cols)
 
-#     df = log_transform(df, "area")
-#     return df
+    df = log_transform(df, "area")
+    return df
 
 
 # ---------------------------------------------------------------------------
@@ -155,14 +189,14 @@ if __name__ == "__main__":
     print(sample)
 
     cleaned = drop_columns(sample, ["id"])
-    cleaned = handle_missing(cleaned, ["feat_a"], strategy="impute_mode", missing_values=["?"])
+    cleaned = handle_missing(cleaned, ["feat_a"], strategy="mode", missing_values=["?"])
     cleaned["feat_a"] = cleaned["feat_a"].astype(float)
-    # cleaned = min_max_normalize(cleaned, ["feat_a"])
+    cleaned = z_score_normalize(cleaned, ["feat_a"])
     cleaned = one_hot_encode(cleaned, ["feat_b"])
-    # cleaned = label_encode(cleaned, ["month"],
-                            # orderings={"month": ["jan", "feb", "mar", "apr", "may", "jun",
-                            #                       "jul", "aug", "sep", "oct", "nov", "dec"]})
-    # cleaned = cyclic_encode(cleaned, "month", period=12)
+    cleaned = label_encode(cleaned, ["month"],
+                            orderings={"month": ["jan", "feb", "mar", "apr", "may", "jun",
+                                                  "jul", "aug", "sep", "oct", "nov", "dec"]})
+    cleaned = cyclic_encode(cleaned, "month", period=12)
 
     print("\nCleaned:")
     print(cleaned)
