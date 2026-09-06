@@ -10,9 +10,9 @@ def k_nearest_neighbors_classification(features_train, labels_train, features_te
     Predict the class labels for the test data using the KNN algorithm.
 
     Parameters:
-    X_train (np.ndarray): Training data features.
-    y_train (np.ndarray): Training data labels.
-    X_test (np.ndarray): Test data features.
+    features_train (np.ndarray): Training data features.
+    labels_train (np.ndarray): Training data labels.
+    features_test (np.ndarray): Test data features.
     k (int): Number of nearest neighbors to consider.
     distance_metric (str): Distance metric to use ('euclidean' or 'manhattan').
 
