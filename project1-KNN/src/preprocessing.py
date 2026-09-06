@@ -7,7 +7,7 @@ import pandas as pd
 # ---------------------------------------------------------------------------
 
 def drop_columns(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
-    """Drop columns that aren't useful as features (IDs, names, etc.)."""
+    """Drop columns that aren't useful (IDs, names, etc.)."""
     return df.drop(columns=columns, errors="ignore")
 
 
@@ -19,17 +19,10 @@ def handle_missing(
 ) -> pd.DataFrame:
     """
     Handle missing values in the given columns.
-
-    strategy:
-        "drop_rows"       -> drop any row with a missing value in `columns`
-        "impute_mean"     -> replace missing numeric values with column mean
-        "impute_mode"     -> replace missing values with column mode
-                             (works for numeric or categorical)
-
-    missing_values: list of sentinel values that represent "missing"
-                    (e.g. ["?"]). Defaults to treating NaN as missing.
     """
     df = df.copy()
+
+    # replace specified value with NaN so that pandas can handle it (e.g. "?" -> NaN)
     if missing_values:
         df[columns] = df[columns].replace(missing_values, np.nan)
 
@@ -37,30 +30,19 @@ def handle_missing(
     if strategy == "drop_rows":
         return df.dropna(subset=columns)
 
-    # replace missing numeric values with column mean
-    if strategy == "impute_mean":
+    # replace missing numeric values with column mean (only works for numeric columns)
+    if strategy == "mean":
         for col in columns:
             df[col] = df[col].fillna(df[col].mean())
         return df
 
-    # replace missing values with column mode
-    if strategy == "impute_mode":
+    # replace missing values with column mode (works for numeric or categorical)
+    if strategy == "mode":
         for col in columns:
             df[col] = df[col].fillna(df[col].mode().iloc[0])
         return df
 
     raise ValueError(f"Unknown strategy: {strategy}")
-
-
-def min_max_normalize(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
-    """Scale numeric columns to the range [0, 1]."""
-    df = df.copy()
-    for col in columns:
-        col_min = df[col].min()
-        col_max = df[col].max()
-        denom = col_max - col_min
-        df[col] = 0.0 if denom == 0 else (df[col] - col_min) / denom
-    return df
 
 
 def z_score_normalize(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
@@ -74,44 +56,8 @@ def z_score_normalize(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
 
 
 def one_hot_encode(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
-    """One-hot encode nominal categorical columns."""
+    """One-hot encode categorical columns."""
     return pd.get_dummies(df, columns=columns)
-
-
-def label_encode(df: pd.DataFrame, columns: list[str], orderings: dict = None) -> pd.DataFrame:
-    """
-    Encode categorical columns as integers.
-
-    orderings: optional dict {column_name: [ordered_values]} to control
-    the integer assignment for ordinal features. If not provided for a
-    column, values are encoded in sorted order (fine for nominal features
-    you plan to treat as plain integers, e.g. month names -> 1-12).
-    """
-    df = df.copy()
-    orderings = orderings or {}
-    for col in columns:
-        if col in orderings:
-            mapping = {val: i for i, val in enumerate(orderings[col])}
-            df[col] = df[col].map(mapping)
-        else:
-            df[col] = df[col].astype("category").cat.codes
-    return df
-
-
-def cyclic_encode(df: pd.DataFrame, column: str, period: int) -> pd.DataFrame:
-    """
-    Encode a cyclic feature (e.g. month 1-12, day-of-week 0-6) as two
-    columns using sine/cosine so that, e.g., December and January end up
-    close together instead of far apart.
-
-    Assumes `column` is already numeric (use label_encode first if needed).
-    `period` is the number of steps in the full cycle (12 for months).
-    """
-    df = df.copy()
-    radians = 2 * np.pi * df[column] / period
-    df[f"{column}_sin"] = np.sin(radians)
-    df[f"{column}_cos"] = np.cos(radians)
-    return df.drop(columns=[column])
 
 
 def log_transform(df: pd.DataFrame, column: str) -> pd.DataFrame:
@@ -131,64 +77,64 @@ def log_transform(df: pd.DataFrame, column: str) -> pd.DataFrame:
 
 def preprocess_breast_cancer(df: pd.DataFrame) -> pd.DataFrame:
     df = drop_columns(df, ["sample_code_number"])
-    numeric_cols = [c for c in df.columns if c != "class"]
-    df = handle_missing(df, numeric_cols, strategy="impute_mode", missing_values=["?"])
+    numeric_cols = [c for c in df.columns if c != "class"] 
+    df = handle_missing(df, numeric_cols, strategy="mode", missing_values=["?"])
     df[numeric_cols] = df[numeric_cols].astype(float)
-    df = min_max_normalize(df, numeric_cols)
-    return df
-
-
-def preprocess_car_evaluation(df: pd.DataFrame) -> pd.DataFrame:
-    feature_cols = [c for c in df.columns if c != "class"]
-    # All features treated as nominal per the assignment notes
-    df = one_hot_encode(df, feature_cols)
-    return df
-
-
-def preprocess_congressional_vote(df: pd.DataFrame) -> pd.DataFrame:
-    # NOTE: "?" means "abstain" here, NOT missing -- treat it as its own
-    # category rather than dropping/imputing it.
-    feature_cols = [c for c in df.columns if c != "class"]
-    df = one_hot_encode(df, feature_cols)
-    return df
-
-
-def preprocess_abalone(df: pd.DataFrame, encode_sex: bool = True) -> pd.DataFrame:
-    numeric_cols = [c for c in df.columns if c not in ("sex", "rings")]
     df = z_score_normalize(df, numeric_cols)
-    if encode_sex:
-        df = one_hot_encode(df, ["sex"])
-    else:
-        df = drop_columns(df, ["sex"])
     return df
 
 
-def preprocess_computer_hardware(df: pd.DataFrame) -> pd.DataFrame:
-    df = drop_columns(df, ["vendor_name", "model_name"])
-    # Save ERP separately for later comparison -- don't use as a feature
-    erp = df["erp"].copy() if "erp" in df.columns else None
-    df = drop_columns(df, ["erp"])
-    numeric_cols = [c for c in df.columns if c != "prp"]
-    df = z_score_normalize(df, numeric_cols)
-    return df, erp
+# def preprocess_car_evaluation(df: pd.DataFrame) -> pd.DataFrame:
+#     feature_cols = [c for c in df.columns if c != "class"]
+#     # All features treated as nominal per the assignment notes
+#     df = one_hot_encode(df, feature_cols)
+#     return df
 
 
-def preprocess_forest_fires(df: pd.DataFrame) -> pd.DataFrame:
-    month_order = ["jan", "feb", "mar", "apr", "may", "jun",
-                   "jul", "aug", "sep", "oct", "nov", "dec"]
-    day_order = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+# def preprocess_congressional_vote(df: pd.DataFrame) -> pd.DataFrame:
+#     # NOTE: "?" means "abstain" here, NOT missing -- treat it as its own
+#     # category rather than dropping/imputing it.
+#     feature_cols = [c for c in df.columns if c != "class"]
+#     df = one_hot_encode(df, feature_cols)
+#     return df
 
-    df = label_encode(df, ["month"], orderings={"month": month_order})
-    df = cyclic_encode(df, "month", period=12)
 
-    df = label_encode(df, ["day"], orderings={"day": day_order})
-    df = cyclic_encode(df, "day", period=7)
+# def preprocess_abalone(df: pd.DataFrame, encode_sex: bool = True) -> pd.DataFrame:
+#     numeric_cols = [c for c in df.columns if c not in ("sex", "rings")]
+#     df = z_score_normalize(df, numeric_cols)
+#     if encode_sex:
+#         df = one_hot_encode(df, ["sex"])
+#     else:
+#         df = drop_columns(df, ["sex"])
+#     return df
 
-    numeric_cols = [c for c in df.columns if c not in ("area",)]
-    df = min_max_normalize(df, numeric_cols)
 
-    df = log_transform(df, "area")
-    return df
+# def preprocess_computer_hardware(df: pd.DataFrame) -> pd.DataFrame:
+#     df = drop_columns(df, ["vendor_name", "model_name"])
+#     # Save ERP separately for later comparison -- don't use as a feature
+#     erp = df["erp"].copy() if "erp" in df.columns else None
+#     df = drop_columns(df, ["erp"])
+#     numeric_cols = [c for c in df.columns if c != "prp"]
+#     df = z_score_normalize(df, numeric_cols)
+#     return df, erp
+
+
+# def preprocess_forest_fires(df: pd.DataFrame) -> pd.DataFrame:
+#     month_order = ["jan", "feb", "mar", "apr", "may", "jun",
+#                    "jul", "aug", "sep", "oct", "nov", "dec"]
+#     day_order = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+
+#     df = label_encode(df, ["month"], orderings={"month": month_order})
+#     df = cyclic_encode(df, "month", period=12)
+
+#     df = label_encode(df, ["day"], orderings={"day": day_order})
+#     df = cyclic_encode(df, "day", period=7)
+
+#     numeric_cols = [c for c in df.columns if c not in ("area",)]
+#     df = min_max_normalize(df, numeric_cols)
+
+#     df = log_transform(df, "area")
+#     return df
 
 
 # ---------------------------------------------------------------------------
@@ -211,12 +157,12 @@ if __name__ == "__main__":
     cleaned = drop_columns(sample, ["id"])
     cleaned = handle_missing(cleaned, ["feat_a"], strategy="impute_mode", missing_values=["?"])
     cleaned["feat_a"] = cleaned["feat_a"].astype(float)
-    cleaned = min_max_normalize(cleaned, ["feat_a"])
+    # cleaned = min_max_normalize(cleaned, ["feat_a"])
     cleaned = one_hot_encode(cleaned, ["feat_b"])
-    cleaned = label_encode(cleaned, ["month"],
-                            orderings={"month": ["jan", "feb", "mar", "apr", "may", "jun",
-                                                  "jul", "aug", "sep", "oct", "nov", "dec"]})
-    cleaned = cyclic_encode(cleaned, "month", period=12)
+    # cleaned = label_encode(cleaned, ["month"],
+                            # orderings={"month": ["jan", "feb", "mar", "apr", "may", "jun",
+                            #                       "jul", "aug", "sep", "oct", "nov", "dec"]})
+    # cleaned = cyclic_encode(cleaned, "month", period=12)
 
     print("\nCleaned:")
     print(cleaned)
