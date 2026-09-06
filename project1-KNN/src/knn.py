@@ -42,3 +42,9 @@ def k_nearest_neighbors_classification(features_train, labels_train, features_te
         predictions.append(most_common_label)
 
     return np.array(predictions)
+
+
+def k_nearest_neighbors_regression(features_train, labels_train, features_test, k, distance_metric='euclidean'):
+
+    raise NotImplementedError("KNN regression is not implemented yet.")
+    
