@@ -117,6 +117,14 @@ def log_transform(df: pd.DataFrame, column: str) -> pd.DataFrame:
     return df
 
 
+def parse_to_int(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
+    """Convert string columns to integers, if possible."""
+    df = df.copy()
+    for col in columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    return df
+
+
 # ---------------------------------------------------------------------------
 # Dataset-specific wrappers
 # ---------------------------------------------------------------------------
@@ -175,6 +183,8 @@ def preprocess_forest_fires(df: pd.DataFrame) -> pd.DataFrame:
 
     df = label_encode(df, ["day"], orderings={"day": day_order})
     df = cyclic_encode(df, "day", period=7)
+
+    df = parse_to_int(df, ["X", "Y", "FFMC", "DMC", "DC", "ISI", "temp", "RH", "wind", "rain", "area"])
 
     numeric_cols = [c for c in df.columns if c not in ("area",)]
     df = min_max_normalize(df, numeric_cols)
