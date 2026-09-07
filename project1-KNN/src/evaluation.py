@@ -64,7 +64,7 @@ def mean_squared_error(label_true, label_pred):
     return np.mean((label_true - label_pred) ** 2)
 
 
-def cross_validation_loop(feature_data, label_data, k=3, model="classification", n_splits=5, test_size=0.5):
+def cross_validation_loop(feature_data, label_data, k=3, model="classification", n_splits=5, test_size=0.5, gamma=1.0):
     """
     Perform a 5x2 cross-validation loop for model evaluation.
 
@@ -96,12 +96,11 @@ def cross_validation_loop(feature_data, label_data, k=3, model="classification",
             error_list.append(classification_error(fold_A_label, label_pred))
 
         elif model == "regression":
-            # NOTE: KNN regression is not implemented yet, so this part will raise NotImplementedError
-            label_pred = k_nearest_neighbors_regression(fold_A_feature, fold_A_label, fold_B_feature, k)
+            label_pred = k_nearest_neighbors_regression(fold_A_feature, fold_A_label, fold_B_feature, k, gamma=gamma)
             error_list.append(mean_squared_error(fold_B_label, label_pred))
             
             # Reverse the roles of fold A and fold B for the second evaluation
-            label_pred = k_nearest_neighbors_regression(fold_B_feature, fold_B_label, fold_A_feature, k)
+            label_pred = k_nearest_neighbors_regression(fold_B_feature, fold_B_label, fold_A_feature, k, gamma=gamma)
             error_list.append(mean_squared_error(fold_A_label, label_pred))
         else:
             raise ValueError("Unsupported model type. Use 'classification' or 'regression'.")
