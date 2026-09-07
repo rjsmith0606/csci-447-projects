@@ -143,8 +143,22 @@ def preprocess_breast_cancer(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def preprocess_car_evaluation(df: pd.DataFrame) -> pd.DataFrame:
-    feature_cols = [c for c in df.columns if c != "class"]
-    df = one_hot_encode(df, feature_cols)
+    buying_order = ["low", "med", "high", "vhigh"]
+    maint_order = ["low", "med", "high", "vhigh"]
+    doors_order = ["2", "3", "4", "5more"]
+    persons_order = ["2", "4", "more"]
+    lug_boot_order = ["small", "med", "big"]
+    safety_order = ["low", "med", "high"]
+
+    df = label_encode(df, ["buying"], orderings={"buying": buying_order})
+    df = label_encode(df, ["maint"], orderings={"maint": maint_order})
+    df = label_encode(df, ["doors"], orderings={"doors": doors_order})
+    df = label_encode(df, ["persons"], orderings={"persons": persons_order})
+    df = label_encode(df, ["lug_boot"], orderings={"lug_boot": lug_boot_order})
+    df = label_encode(df, ["safety"], orderings={"safety": safety_order})
+
+    numeric_cols = [c for c in df.columns if c != "class"]
+    df = min_max_normalize(df, numeric_cols)
     return df
 
 
