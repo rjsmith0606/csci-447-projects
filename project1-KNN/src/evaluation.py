@@ -27,8 +27,8 @@ def train_test_split(feature_data, label_data, test_size=0.5):
     split_index = int(len(feature_data) * (1 - test_size))
 
     # Split the data into training and testing sets
-    feature_train = np.asarray(feature_data.iloc[indices[:split_index]])
-    feature_test = np.asarray(feature_data.iloc[indices[split_index:]])
+    feature_train = np.asarray(feature_data.iloc[indices[:split_index]], dtype=float)
+    feature_test = np.asarray(feature_data.iloc[indices[split_index:]], dtype=float)
     label_train = np.asarray(label_data.iloc[indices[:split_index]])
     label_test = np.asarray(label_data.iloc[indices[split_index:]])
 
@@ -64,19 +64,19 @@ def mean_squared_error(label_true, label_pred):
     return np.mean((label_true - label_pred) ** 2)
 
 
-def cross_validation_loop(feature_data, label_data, model="classification", n_splits=5, test_size=0.5):
+def cross_validation_loop(feature_data, label_data, k=3, model="classification", n_splits=5, test_size=0.5):
     """
     Perform a 5x2 cross-validation loop for model evaluation.
 
     Parameters:
-    model: The machine learning model to evaluate.
     feature_data (np.ndarray): Feature data.
     label_data (np.ndarray): Label data.
+    model: The type of model to evaluate ('classification' or 'regression').
     n_splits (int): Number of splits for cross-validation (default is 5).
     test_size (float): Proportion of the dataset to include in the test split (default is 0.5).
 
     Returns:
-    list: A list of mean squared errors for each fold.
+    list: A list of mean squared errors or classification errors for each fold.
     """
 
     error_list = []
@@ -88,20 +88,20 @@ def cross_validation_loop(feature_data, label_data, model="classification", n_sp
 
         # Fit the model on the training data
         if model == "classification":
-            label_pred = k_nearest_neighbors_classification(fold_A_feature, fold_A_label, fold_B_feature, k=3)
+            label_pred = k_nearest_neighbors_classification(fold_A_feature, fold_A_label, fold_B_feature, k)
             error_list.append(classification_error(fold_B_label, label_pred))
 
             # Reverse the roles of fold A and fold B for the second evaluation
-            label_pred = k_nearest_neighbors_classification(fold_B_feature, fold_B_label, fold_A_feature, k=3)
+            label_pred = k_nearest_neighbors_classification(fold_B_feature, fold_B_label, fold_A_feature, k)
             error_list.append(classification_error(fold_A_label, label_pred))
 
         elif model == "regression":
             # NOTE: KNN regression is not implemented yet, so this part will raise NotImplementedError
-            label_pred = k_nearest_neighbors_regression(fold_A_feature, fold_A_label, fold_B_feature, k=3)
+            label_pred = k_nearest_neighbors_regression(fold_A_feature, fold_A_label, fold_B_feature, k)
             error_list.append(mean_squared_error(fold_B_label, label_pred))
             
             # Reverse the roles of fold A and fold B for the second evaluation
-            label_pred = k_nearest_neighbors_regression(fold_B_feature, fold_B_label, fold_A_feature, k=3)
+            label_pred = k_nearest_neighbors_regression(fold_B_feature, fold_B_label, fold_A_feature, k)
             error_list.append(mean_squared_error(fold_A_label, label_pred))
         else:
             raise ValueError("Unsupported model type. Use 'classification' or 'regression'.")
