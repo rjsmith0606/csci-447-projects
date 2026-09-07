@@ -32,6 +32,7 @@ def train_test_split(feature_data, label_data, test_size=0.5):
     label_train = label_data[indices[:split_index]]
     label_test = label_data[indices[split_index:]]
 
+
     return feature_train, feature_test, label_train, label_test
 
 
