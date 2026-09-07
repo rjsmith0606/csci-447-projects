@@ -27,10 +27,10 @@ def train_test_split(feature_data, label_data, test_size=0.5):
     split_index = int(len(feature_data) * (1 - test_size))
 
     # Split the data into training and testing sets
-    feature_train = feature_data[indices[:split_index]]
-    feature_test = feature_data[indices[split_index:]]
-    label_train = label_data[indices[:split_index]]
-    label_test = label_data[indices[split_index:]]
+    feature_train = np.asarray(feature_data.iloc[indices[:split_index]])
+    feature_test = np.asarray(feature_data.iloc[indices[split_index:]])
+    label_train = np.asarray(label_data.iloc[indices[:split_index]])
+    label_test = np.asarray(label_data.iloc[indices[split_index:]])
 
 
     return feature_train, feature_test, label_train, label_test

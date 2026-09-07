@@ -3,7 +3,7 @@ Implementation of the K-Nearest Neighbors (KNN) algorithm.
 """
 import numpy as np
 from collections import Counter
-from distance import euclidean_distance, manhattan_distance
+from src.distance import euclidean_distance, manhattan_distance
 
 def k_nearest_neighbors_classification(features_train, labels_train, features_test, k, distance_metric='euclidean'):
     """
@@ -19,6 +19,7 @@ def k_nearest_neighbors_classification(features_train, labels_train, features_te
     Returns:
     np.ndarray: Predicted class labels for the test data.
     """
+
     predictions = []
     
     for test_point in features_test:
