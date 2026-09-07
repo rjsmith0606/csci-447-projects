@@ -3,7 +3,7 @@ Implementation of the K-Nearest Neighbors (KNN) algorithm.
 """
 import numpy as np
 from collections import Counter
-from src.distance import euclidean_distance, manhattan_distance
+from distance import euclidean_distance, manhattan_distance
 
 def k_nearest_neighbors_classification(features_train, labels_train, features_test, k, distance_metric='euclidean'):
     """
@@ -14,7 +14,7 @@ def k_nearest_neighbors_classification(features_train, labels_train, features_te
     labels_train (np.ndarray): Training data labels.
     features_test (np.ndarray): Test data features.
     k (int): Number of nearest neighbors to consider.
-    distance_metric (str): Distance metric to use ('euclidean' or 'manhattan').
+    distance_metric (str): Distance metric to use ('Euclidean' or 'Manhattan').
 
     Returns:
     np.ndarray: Predicted class labels for the test data.
@@ -44,7 +44,34 @@ def k_nearest_neighbors_classification(features_train, labels_train, features_te
     return np.array(predictions)
 
 
-def k_nearest_neighbors_regression(features_train, labels_train, features_test, k, distance_metric='euclidean'):
+def k_nearest_neighbors_regression(features_train, labels_train, features_test, k, gamma=1.0,
+                                   distance_metric='euclidean'):
+    """
+    Predict values for test data using a Gaussian Kernel for regression.
+    Kernel: K(x, xq) = exp(-gamma * ||x - xq||^2) [1]
+    """
+    if distance_metric != 'euclidean':
+        raise ValueError("Regression requires 'euclidean' distance for the Gaussian kernel [1].")
 
-    raise NotImplementedError("KNN regression is not implemented yet.")
-    
+    predictions = []
+
+    for test_point in features_test:
+        # 1. Calculate Euclidean distances from the test point to all training points
+        distances = np.array([euclidean_distance(test_point, train_point) for train_point in features_train])
+
+        # 2. Get indices of the k nearest neighbors
+        k_indices = np.argsort(distances)[:k]
+
+        # 3. Extract the labels and distances for those k neighbors
+        k_labels = labels_train[k_indices]
+        k_dists = distances[k_indices]
+
+        # 4. Apply the Gaussian Kernel to calculate weights [1]
+        # Weight = exp(-gamma * distance^2)
+        weights = np.exp(-gamma * (k_dists ** 2))
+
+        # 5. Calculate the weighted average: sum(weight * label) / sum(weights) [1]
+        prediction = np.sum(weights * k_labels) / np.sum(weights)
+        predictions.append(prediction)
+
+    return np.array(predictions)
