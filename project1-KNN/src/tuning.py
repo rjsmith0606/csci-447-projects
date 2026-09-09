@@ -1,27 +1,106 @@
 """
 Hyperparameter tuning for the KNN algorithm.
 """
-from evaluation import cross_validation_loop  # Use your existing CV logic
+import numpy as np
+import random as random
 
+from evaluation import train_test_split, classification_error, mean_squared_error
+from knn import k_nearest_neighbors_classification, k_nearest_neighbors_regression
+from reduction import edited_knn
 
-def tune_knn_params(features, labels, task='classification'):
-    # 1. Define the grid of values to test
-    k_candidates = [1, 3, 5, 7, 11]
-    gamma_candidates = [0.1, 1.0, 10.0] if task == 'regression' else [None]
+def sample_uniform(low, high):
+    return random.uniform(low, high)
+ 
+ 
+def sample_loguniform(low, high):
+    """Sample on a log scale -- use this for gamma, which can span
+    several orders of magnitude (e.g. 0.001 to 10)."""
+    log_low, log_high = np.log10(low), np.log10(high)
+    return 10 ** random.uniform(log_low, log_high)
+ 
+ 
+def sample_int_odd(low, high):
+    """Sample an odd integer k, to reduce classification tie frequency."""
+    choices = [i for i in range(low, high + 1) if i % 2 == 1]
+    return random.choice(choices)
 
+def tune_knn_classification_params(features, labels, n=30):
+    """
+    Tune hyperparameters for KNN classification using random search.
+    Returns the best k value.
+    """
+    k_range=(1, 25)
+    iterations = n
     best_score = float('inf')
-    best_params = {}
+    best_k = None
 
-    # 2. Nested loops to test every combination
-    for k in k_candidates:
-        for gamma in gamma_candidates:
-            # Call your 5x2 cross-validation loop
-            # Ensure your CV loop can accept k and gamma as arguments
-            current_score = cross_validation_loop(features, labels, model=task, k=k, gamma=gamma)
+    feature_train, feature_test, label_train, label_test = train_test_split(features, labels, test_size=0.2)
 
-            # 3. Track the best performing combination
-            if current_score < best_score:
-                best_score = current_score
-                best_params = {'k': k, 'gamma': gamma}
+    for _ in range(iterations):
+        k = sample_int_odd(*k_range)
+        score = classification_error(label_test, k_nearest_neighbors_classification(feature_train, label_train, feature_test, k=k))
 
-    return best_params
+        if score < best_score:
+            best_score = score
+            best_k = k
+
+    return best_k
+
+
+def tune_knn_regression_params(features, labels, n=30):
+    """
+    Tune hyperparameters for KNN regression using random search.
+    Returns the best k value.
+    """
+    k_range=(1, 25)
+    gamma_range=(0.001, 10)
+    iterations = n
+    best_score = float('inf')
+    best_k = None
+    best_gamma = None
+
+    feature_train, feature_test, label_train, label_test = train_test_split(features, labels, test_size=0.2)
+
+    for _ in range(iterations):
+        k = sample_int_odd(*k_range)
+        gamma = sample_loguniform(*gamma_range)
+        score = mean_squared_error(label_test, k_nearest_neighbors_regression(feature_train, label_train, feature_test, k=k, gamma=gamma))
+
+        if score < best_score:
+            best_score = score
+            best_k = k
+            best_gamma = gamma
+
+    return (best_k, best_gamma)
+
+
+def tune_epsilon_param(features, labels, n=30, method='edited'):
+    """
+    Tune the epsilon hyperparameter for KNN regression using random search.
+    Returns the best epsilon value.
+    """
+    epsilon_range= np.std(labels) * np.array([0.01, 0.1]) 
+    iterations = n
+    best_score = float('inf')
+    best_epsilon = None
+
+    for _ in range(iterations):
+
+        epsilon = sample_loguniform(*epsilon_range)
+
+        if method == 'edited':
+            edited_features, edited_labels = edited_knn(features, labels, epsilon=epsilon, task='regression')
+        elif method == 'condensed':
+            # NOTE: Condensed KNN is not implemented yet.
+            raise NotImplementedError("Condensed KNN is not implemented yet.")
+        else:
+            raise ValueError("Invalid method specified. Choose 'edited' or 'condensed'.")
+
+        feature_train, feature_test, label_train, label_test = train_test_split(edited_features, edited_labels, test_size=0.2)
+        score = mean_squared_error(label_test, k_nearest_neighbors_regression(feature_train, label_train, feature_test, k=1))
+
+        if score < best_score:
+            best_score = score
+            best_epsilon = epsilon
+
+    return best_epsilon
