@@ -6,7 +6,7 @@ import random as random
 
 from evaluation import train_test_split, classification_error, mean_squared_error
 from knn import k_nearest_neighbors_classification, k_nearest_neighbors_regression
-from reduction import edited_knn
+from reduction import edited_knn, condensed_knn
 
 def sample_uniform(low, high):
     return random.uniform(low, high)
@@ -14,7 +14,9 @@ def sample_uniform(low, high):
  
 def sample_loguniform(low, high):
     """Sample on a log scale -- use this for gamma, which can span
-    several orders of magnitude (e.g. 0.001 to 10)."""
+    several orders of magnitude (e.g. 0.001 to 10). Provides a more uniform sampling across the range of values.
+    A plain uniform draw would spend most of its picks on values between, say, 1 and 10, and rarely land anywhere
+    near 0.001 to 0.01"""
     log_low, log_high = np.log10(low), np.log10(high)
     return 10 ** random.uniform(log_low, log_high)
  
@@ -53,7 +55,7 @@ def tune_knn_regression_params(features, labels, n=30):
     Returns the best k value.
     """
     k_range=(1, 25)
-    gamma_range=(0.001, 10)
+    gamma_range=(0.001, 10) 
     iterations = n
     best_score = float('inf')
     best_k = None
@@ -79,7 +81,7 @@ def tune_epsilon_param(features, labels, n=30, method='edited'):
     Tune the epsilon hyperparameter for KNN regression using random search.
     Returns the best epsilon value.
     """
-    epsilon_range= np.std(labels) * np.array([0.01, 0.1]) 
+    epsilon_range= np.std(labels) * np.array([0.01, 0.1]) # 1% to 10% of the standard deviation
     iterations = n
     best_score = float('inf')
     best_epsilon = None
@@ -91,8 +93,7 @@ def tune_epsilon_param(features, labels, n=30, method='edited'):
         if method == 'edited':
             edited_features, edited_labels = edited_knn(features, labels, epsilon=epsilon, task='regression')
         elif method == 'condensed':
-            # NOTE: Condensed KNN is not implemented yet.
-            raise NotImplementedError("Condensed KNN is not implemented yet.")
+            edited_features, edited_labels = condensed_knn(features, labels, task='regression')
         else:
             raise ValueError("Invalid method specified. Choose 'edited' or 'condensed'.")
 
