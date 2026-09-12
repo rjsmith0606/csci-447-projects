@@ -4,9 +4,9 @@ Hyperparameter tuning for the KNN algorithm.
 import numpy as np
 import random as random
 
-from evaluation import train_test_split, classification_error, mean_squared_error
-from knn import k_nearest_neighbors_classification, k_nearest_neighbors_regression
-from reduction import edited_knn, condensed_knn
+from src.evaluation import train_test_split, classification_error, mean_squared_error
+from src.knn import k_nearest_neighbors_classification, k_nearest_neighbors_regression
+from src.reduction import edited_knn, condensed_knn
 
 def sample_uniform(low, high):
     return random.uniform(low, high)
@@ -46,7 +46,7 @@ def tune_knn_classification_params(features, labels, n=30):
             best_score = score
             best_k = k
 
-    return best_k
+    return (best_k, best_score)
 
 
 def tune_knn_regression_params(features, labels, n=30):
@@ -73,7 +73,7 @@ def tune_knn_regression_params(features, labels, n=30):
             best_k = k
             best_gamma = gamma
 
-    return (best_k, best_gamma)
+    return (best_k, best_gamma, best_score)
 
 
 def tune_epsilon_param(features, labels, n=30, method='edited'):
@@ -85,10 +85,11 @@ def tune_epsilon_param(features, labels, n=30, method='edited'):
     iterations = n
     best_score = float('inf')
     best_epsilon = None
+    best_edited_features_len = None
 
     for _ in range(iterations):
 
-        epsilon = sample_loguniform(*epsilon_range)
+        epsilon = sample_uniform(*epsilon_range)
 
         if method == 'edited':
             edited_features, edited_labels = edited_knn(features, labels, epsilon=epsilon, task='regression')
@@ -103,5 +104,6 @@ def tune_epsilon_param(features, labels, n=30, method='edited'):
         if score < best_score:
             best_score = score
             best_epsilon = epsilon
+            best_edited_features_len = len(edited_features)
 
-    return best_epsilon
+    return best_epsilon, best_score, best_edited_features_len

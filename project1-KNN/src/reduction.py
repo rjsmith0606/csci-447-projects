@@ -3,7 +3,7 @@ Implementation of edited KNN and condensed KNN.
 """
 
 import numpy as np
-from knn import k_nearest_neighbors_classification, k_nearest_neighbors_regression
+from src.knn import k_nearest_neighbors_classification, k_nearest_neighbors_regression
 
 
 def edited_knn(features, labels, epsilon=0.1, task='classification'):
@@ -13,6 +13,9 @@ def edited_knn(features, labels, epsilon=0.1, task='classification'):
     """
     # Requirement: Use k=1 during the editing process [1]
     k_edit = 1
+    # Normalize pandas inputs so indexing below is always positional.
+    features = np.asarray(features)
+    labels = np.asarray(labels)
     reduced_features = []
     reduced_labels = []
 
@@ -39,50 +42,57 @@ def edited_knn(features, labels, epsilon=0.1, task='classification'):
     return np.array(reduced_features), np.array(reduced_labels)
 
 
-def condensed_knn(features, labels, task='classification'):
+
+def condensed_knn(features, labels, epsilon=0.1, task='classification'):
     """
     Implements Condensed Nearest Neighbor (CNN).
     Starts with a seed and adds examples that are misclassified by the current reduced set.
     """
     # Requirement: Use k=1 during the condensing process [1]
     k_condense = 1
+    # Normalize pandas inputs so indexing below is always positional.
+    features = np.asarray(features)
+    labels = np.asarray(labels)
 
     # Start with the first example as the seed
     reduced_features = [features[0]]
     reduced_labels = [labels[0]]
 
     # The remaining examples to be checked
-    remaining_features = features[1:]
-    remaining_labels = labels[1:]
+    remaining_features = list(features[1:])
+    remaining_labels = list(labels[1:])
 
-    idx = 0
-    while idx < len(remaining_features):
-        test_feat = remaining_features[idx].reshape(1, -1)
-        actual_label = remaining_labels[idx]
+    changed = True
+    while changed and remaining_features:
+        changed = False
+        idx = 0
+        while idx < len(remaining_features):
+            test_feat = remaining_features[idx].reshape(1, -1)
+            actual_label = remaining_labels[idx]
 
-        if task == 'classification':
-            pred = k_nearest_neighbors_classification(
-                np.array(reduced_features), np.array(reduced_labels), test_feat, k=k_condense
-            )
-            # Add to reduced set if it is misclassified by the current set [1]
-            if pred[0] != actual_label:
-                reduced_features.append(remaining_features[idx])
-                reduced_labels.append(remaining_labels[idx])
+            if task == 'classification':
+                pred = k_nearest_neighbors_classification(
+                    np.array(reduced_features), np.array(reduced_labels), test_feat, k=k_condense
+                )
+                misclassified = pred[0] != actual_label
 
 
-        elif task == 'regression':
-            # Note: Condensed KNN for regression typically requires an epsilon threshold
-            # similar to Edited KNN to define what "misclassified" means.
-            # This is a simplified version; you may need to tune epsilon here.
-            epsilon = 0.1
-            pred = k_nearest_neighbors_regression(
-                np.array(reduced_features), np.array(reduced_labels), test_feat, k=k_condense
-            )
-            if abs(pred[0] - actual_label) > epsilon:
-                reduced_features.append(remaining_features[idx])
-                reduced_labels.append(remaining_labels[idx])
+            elif task == 'regression':
+                # Note: Condensed KNN for regression typically requires an epsilon threshold
+                # similar to Edited KNN to define what "misclassified" means.
+                # This is a simplified version; you may need to tune epsilon here.
+                pred = k_nearest_neighbors_regression(
+                    np.array(reduced_features), np.array(reduced_labels), test_feat, k=k_condense
+                )
+                misclassified = abs(pred[0] - actual_label) > epsilon
 
-        idx += 1
+            if misclassified: # type: ignore
+                reduced_features.append(remaining_features.pop(idx))
+                reduced_labels.append(remaining_labels.pop(idx))
+                changed = True
+                # do NOT increment idx — list shrank, next element shifted into this index
+            else:
+                idx += 1
 
     return np.array(reduced_features), np.array(reduced_labels)
 
