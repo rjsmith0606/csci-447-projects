@@ -4,22 +4,22 @@
 \usepackage{lastpage}
 \usepackage{amsmath}
 \usepackage{booktabs}
+\usepackage{appendix}
 
-\jmlrheading{25}{2025}{1-\pageref{LastPage}}{12/5/25}{12/5/25}{25-0040}{Isaac Wilkey and Riley Smith}
+\jmlrheading{26}{2026}{1-\pageref{LastPage}}{9/18/26}{9/18/26}{25-0040}{Isaac Wilkey and Riley Smith}
 \ShortHeadings{Reinforcement Learning: Racetrack Problem}{Wilkey and Smith}
 \firstpageno{1}
 
 \begin{document}
 
-\title{Reinforcement Learning and the Racetrack Problem: Value Iteration, Q-learning, and SARSA}
+\title{Nonparametric Classification and Regression with k-Nearest Neighbors, Edited KNN, and Condensed KNN}
 
-\author{
-\name Isaac Wilkey \\
+\author{\name Isaac Wilkey \email isaac.wilkey@student.montana.edu\\
 \addr Department of Computer Science \\
 Montana State University \\
 Bozeman, MT, USA
 \AND
-\name Riley Smith \\
+\name Riley Smith \email riley.smith13@student.montana.edu\\
 \addr Department of Computer Science \\
 Montana State University \\
 Bozeman, MT, USA
@@ -57,7 +57,7 @@ We hypothesize that Value Iteration will produce optimal policies when the state
 
 
 
-\section{Algorithms Implemented and Experimental Approach}
+\section{Experimental Approach and Project Design}
 \subsection{Value Iteration}
 Value Iteration is a dynamic programming approach that computes the optimal policy for a fully specified Markov Decision Process (MDP). The algorithm iteratively updates the value of each state by considering the expected cost of each possible action and the resulting successor states. Formally, the value of state $s$ at iteration $k+1$ is updated according to the Bellman optimality equation:
 \begin{equation}
@@ -83,8 +83,21 @@ Q(s, a) \leftarrow Q(s, a) + \alpha \left( r + \gamma Q(s', a') - Q(s, a) \right
 \end{equation}
 where $a'$ is the action chosen in $s'$ according to the current $\epsilon$-greedy policy. This on-policy nature incorporates the agent’s exploration behavior into learning, often producing safer, more conservative strategies under stochastic transitions. Like Q-learning, the algorithm relies on learning-rate schedules and exploration decay to stabilize learning and encourage adequate state-action coverage. While SARSA was implemented, only Value-Iteration was fully analyzed according to the requirements.
 
+\section{Algorithms Implemented}
 
-\section{Results}
+\subsection{Null Models}
+
+\subsection{k-Nearest Neighbor Classification}
+
+\subsection{k-Nearest Neighbor Regression}
+
+\subsection{Edited KNN}
+
+\subsection{Condensed KNN}
+
+\subsection{Hyperparameter Tuning}
+
+\section{Experimental Results}
 
 \subsection{Value Iteration}
 
@@ -271,7 +284,7 @@ Both VI and QL successfully converged on the 2-Track. VI required far fewer iter
 \end{figure}
 
 
-\section{Discussion}
+\section{Analysis & Discussion}
 \subsection{Hyperparameter Tuning}
 
 Across both Value Iteration and Q-Learning, hyperparameter selection had a secondary effect on runtime and convergence compared to the impact of collision-handling rules (STRT vs. NRST). For \textbf{Value Iteration} (Table~\ref{tab:t1}), changing $\gamma$ or $\epsilon$ slightly altered the number of iterations required, but total runtime was dominated by whether STRT reset transitions were included. NRST consistently required 21 iterations across all tested hyperparameters, while STRT ranged from 12 to 24 iterations and sometimes timed out, highlighting that small tuning adjustments cannot compensate for MDP structural complexity introduced by resets.
@@ -290,9 +303,15 @@ Post-convergence performance, observed in \textbf{Figure~3}, shows that both alg
 
 \textbf{Figure~2} demonstrates that runtime efficiency post-convergence mirrors the trends seen during learning: NRST allows both algorithms to complete quickly, whereas STRT imposes a substantial runtime penalty, especially for Q-Learning. This emphasizes that environment design—specifically collision handling—can have as much or more influence on algorithm performance as hyperparameter tuning or algorithm choice.
 
-\subsection{Summary}
+\subsection{Conclusion}
 
 In summary, the experiments highlight three key points. First, hyperparameter tuning can improve performance but cannot overcome structural bottlenecks introduced by collision resets (Tables~\ref{tab:t1} and~\ref{tab:t2}). Second, model-free algorithms like Q-Learning are particularly sensitive to the environment, with policy convergence heavily influenced by state visitation patterns. Third, post-convergence performance shows that the underlying MDP design, rather than algorithm choice alone, largely determines efficiency and trajectory quality. Together, these results underscore the importance of carefully considering both algorithmic and environmental factors when designing reinforcement learning solutions for racetrack-like problems.
 
+\newpage
 
-\end{document}
+\appendix
+\section{Main Lessons Learned}
+
+\section{Delineation of Work}
+
+\end{document}\cite{}
