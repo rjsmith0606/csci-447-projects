@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 
 from src.knn import k_nearest_neighbors_classification, k_nearest_neighbors_regression
+from src.null_model import null_model_classification, null_model_regression
 
 def train_test_split(feature_data, label_data, test_size=0.5):
     """
@@ -27,10 +28,16 @@ def train_test_split(feature_data, label_data, test_size=0.5):
     split_index = int(len(feature_data) * (1 - test_size))
 
     # Split the data into training and testing sets
-    feature_train = np.asarray(feature_data.iloc[indices[:split_index]], dtype=float)
-    feature_test = np.asarray(feature_data.iloc[indices[split_index:]], dtype=float)
-    label_train = np.asarray(label_data.iloc[indices[:split_index]])
-    label_test = np.asarray(label_data.iloc[indices[split_index:]])
+    try:
+        feature_train = np.asarray(feature_data[indices[:split_index]], dtype=float)
+        feature_test = np.asarray(feature_data[indices[split_index:]], dtype=float)
+        label_train = np.asarray(label_data[indices[:split_index]])
+        label_test = np.asarray(label_data[indices[split_index:]])
+    except KeyError as e:
+        feature_train = np.asarray(feature_data.iloc[indices[:split_index]], dtype=float)
+        feature_test = np.asarray(feature_data.iloc[indices[split_index:]], dtype=float)
+        label_train = np.asarray(label_data.iloc[indices[:split_index]])
+        label_test = np.asarray(label_data.iloc[indices[split_index:]])
 
 
     return feature_train, feature_test, label_train, label_test
@@ -74,6 +81,7 @@ def cross_validation_loop(feature_data, label_data, k=3, model="classification",
     model: The type of model to evaluate ('classification' or 'regression').
     n_splits (int): Number of splits for cross-validation (default is 5).
     test_size (float): Proportion of the dataset to include in the test split (default is 0.5).
+    gamma (float): The gamma parameter for the RBF kernel (default is 1.0).
 
     Returns:
     list: A list of mean squared errors or classification errors for each fold.

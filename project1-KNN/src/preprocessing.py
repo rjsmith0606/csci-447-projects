@@ -71,7 +71,7 @@ def min_max_normalize(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
 
 def one_hot_encode(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
     """One-hot encode categorical columns."""
-    return pd.get_dummies(df, columns=columns)
+    return pd.get_dummies(df, columns=columns, dtype=int)
 
 
 def label_encode(df: pd.DataFrame, columns: list[str], orderings: dict | None = None) -> pd.DataFrame:

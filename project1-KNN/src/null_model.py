@@ -18,7 +18,8 @@ def null_model_classification(label_column):
     most_common_label = max(set(label_column), key=list(label_column).count)
     
     # Return an array filled with the most common label
-    return np.full(shape=(len(label_column),), fill_value=most_common_label)
+    label_pred = np.full(shape=(len(label_column),), fill_value=most_common_label)
+    return np.mean(label_column != label_pred)
 
 
 def null_model_regression(label_column):
@@ -35,4 +36,5 @@ def null_model_regression(label_column):
     mean_value = np.mean(label_column)
     
     # Return an array filled with the mean value
-    return np.full(shape=(len(label_column),), fill_value=mean_value)
+    label_pred = np.full(shape=(len(label_column),), fill_value=mean_value)
+    return np.mean((label_column - label_pred) ** 2)
