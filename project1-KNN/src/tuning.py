@@ -31,7 +31,7 @@ def tune_knn_classification_params(features, labels, n=30):
     Tune hyperparameters for KNN classification using random search.
     Returns the best k value.
     """
-    k_range=(1, 25)
+    k_range=(1, max(1, int((np.sqrt(len(labels)//2))))) # Set upper limit to half the square root of the number of samples
     iterations = n
     best_score = float('inf')
     best_k = None
@@ -54,8 +54,8 @@ def tune_knn_regression_params(features, labels, n=30):
     Tune hyperparameters for KNN regression using random search.
     Returns the best k value.
     """
-    k_range=(1, 25)
-    gamma_range=(0.001, 10) 
+    k_range=(1, max(1, int((np.sqrt(len(labels)//2))))) # Set upper limit to half the square root of the number of samples
+    gamma_range=(0.0001, 100) 
     iterations = n
     best_score = float('inf')
     best_k = None
@@ -81,7 +81,7 @@ def tune_epsilon_param(features, labels, n=30, method='edited'):
     Tune the epsilon hyperparameter for KNN regression using random search.
     Returns the best epsilon value.
     """
-    epsilon_range= np.std(labels) * np.array([0.01, 0.1]) # 1% to 10% of the standard deviation
+    epsilon_range= np.std(labels) * np.array([0.001, 0.15]) # 1% to 20% of the standard deviation
     iterations = n
     best_score = float('inf')
     best_epsilon = None
@@ -94,7 +94,7 @@ def tune_epsilon_param(features, labels, n=30, method='edited'):
         if method == 'edited':
             edited_features, edited_labels = edited_knn(features, labels, epsilon=epsilon, task='regression')
         elif method == 'condensed':
-            edited_features, edited_labels = condensed_knn(features, labels, task='regression')
+            edited_features, edited_labels = condensed_knn(features, labels, epsilon=epsilon, task='regression')
         else:
             raise ValueError("Invalid method specified. Choose 'edited' or 'condensed'.")
 

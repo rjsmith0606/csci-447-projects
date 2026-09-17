@@ -20,16 +20,16 @@ def k_nearest_neighbors_classification(features_train, labels_train, features_te
     np.ndarray: Predicted class labels for the test data.
     """
 
+    if distance_metric == 'euclidean':
+        distance_matrix = euclidean_distance(features_test, features_train)
+    elif distance_metric == 'manhattan':
+        distance_matrix = manhattan_distance(features_test, features_train)
+    else:
+        raise ValueError("Unsupported distance metric. Use 'euclidean' or 'manhattan'.")
+
     predictions = []
     
-    for test_point in features_test:
-        # Calculate distances from the test point to all training points
-        if distance_metric == 'euclidean':
-            distances = [euclidean_distance(test_point, train_point) for train_point in features_train]
-        elif distance_metric == 'manhattan':
-            distances = [manhattan_distance(test_point, train_point) for train_point in features_train]
-        else:
-            raise ValueError("Unsupported distance metric. Use 'euclidean' or 'manhattan'.")
+    for distances in distance_matrix:
 
         # Get the indices of the k nearest neighbors
         k_indices = np.argsort(distances)[:k]
@@ -54,11 +54,12 @@ def k_nearest_neighbors_regression(features_train, labels_train, features_test, 
     if distance_metric != 'euclidean':
         raise ValueError("Regression requires 'euclidean' distance for the Gaussian kernel [1].")
 
+    # 1. Calculate the distance matrix between test and training data
+    distance_matrix = euclidean_distance(features_test, features_train)
+
     predictions = []
 
-    for test_point in features_test:
-        # 1. Calculate Euclidean distances from the test point to all training points
-        distances = np.array([euclidean_distance(test_point, train_point) for train_point in features_train])
+    for distances in distance_matrix:
 
         # 2. Get indices of the k nearest neighbors
         k_indices = np.argsort(distances)[:k]
