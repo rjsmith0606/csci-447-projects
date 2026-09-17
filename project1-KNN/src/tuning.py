@@ -31,7 +31,7 @@ def tune_knn_classification_params(features, labels, n=30):
     Tune hyperparameters for KNN classification using random search.
     Returns the best k value.
     """
-    k_range=(1, max(1, int((np.sqrt(len(labels)//2))))) # Set upper limit to half the square root of the number of samples
+    k_range=(1, max(1, int((np.sqrt(len(labels)))))) # Set upper limit to half the square root of the number of samples
     iterations = n
     best_score = float('inf')
     best_k = None
@@ -54,7 +54,7 @@ def tune_knn_regression_params(features, labels, n=30):
     Tune hyperparameters for KNN regression using random search.
     Returns the best k value.
     """
-    k_range=(1, max(1, int((np.sqrt(len(labels)//2))))) # Set upper limit to half the square root of the number of samples
+    k_range=(1, max(1, int((np.sqrt(len(labels)))))) # Set upper limit to half the square root of the number of samples
     gamma_range=(0.0001, 100) 
     iterations = n
     best_score = float('inf')
