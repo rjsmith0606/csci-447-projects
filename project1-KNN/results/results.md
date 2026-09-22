@@ -11,6 +11,7 @@ Tuned k for condensed Breast Cancer dataset: 5
 Classification error for Breast Cancer dataset after Condensed KNN: 0.2791
 
 
+
 # Car Evaluation Dataset - Classification
 
 Tuning k for Edited and Condensed KNN with 100 iterations
@@ -24,9 +25,10 @@ Tuned k for condensed Car Evaluation dataset: 15
 Classification error for Car Evaluation dataset after Condensed KNN: 0.3404
 
 
+
 # House Votes Dataset - Classification
 
-Tuning k for Edited and Condensed KNN with 100 iterations 
+Tuning k for Edited and Condensed KNN with 100 iterations
 
 Null model classification error for House Votes dataset: 0.3862
 
@@ -35,6 +37,7 @@ Classification error for House Votes dataset after Edited KNN: 0.0290
 
 Tuned k for condensed House Votes dataset: 5
 Classification error for House Votes dataset after Condensed KNN: 0.3701
+
 
 
 # Abalone Dataset - Regression
@@ -57,6 +60,7 @@ Tuned gamma for condensed Abalone dataset: 1.0899
 Regression error for Abalone dataset after Condensed KNN: 5.3877
 
 
+
 # Computer Hardware Dataset - Regression
 
 Tuning k and gamma for Edited and Condensed KNN with 250 iterations
@@ -77,7 +81,8 @@ Tuned gamma for condensed Computer Hardware dataset: 0.0002
 Regression error for Computer Hardware dataset after Condensed KNN: 5033.5036
 
 
-# Forrest Fires Dataset - Regression
+
+# Forest Fires Dataset - Regression
 
 Tuning k and gamma for Edited and Condensed KNN with 250 iterations
 Tuning epsilon for Edited and Condensed KNN with 75 iterations
@@ -95,3 +100,4 @@ Tuned epsilon for condensed Forrest Fires dataset: 0.0806
 Tuned k for condensed Forrest Fires dataset: 13
 Tuned gamma for condensed Forrest Fires dataset: 0.0001
 Regression error for Forrest Fires dataset after Condensed KNN: 2.2688
+

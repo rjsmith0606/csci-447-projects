@@ -7,7 +7,7 @@
 \usepackage{appendix}
 
 \jmlrheading{26}{2026}{1-\pageref{LastPage}}{9/18/26}{9/18/26}{25-0040}{Isaac Wilkey and Riley Smith}
-\ShortHeadings{Reinforcement Learning: Racetrack Problem}{Wilkey and Smith}
+\ShortHeadings{KNN Classification and Regression}{Wilkey and Smith}
 \firstpageno{1}
 
 \begin{document}
@@ -29,289 +29,179 @@ Bozeman, MT, USA
 \maketitle
 
 \begin{abstract}
-This project implements and evaluates three reinforcement learning approaches—Value Iteration, Q-learning, and SARSA—on the Racetrack control problem. We describe the environment dynamics (discrete grid positions, bounded integer velocities, and stochastic action failures), the two crash-recovery variants (nearest-track and restart), and the experimental protocol used to compare algorithms across three sample tracks (2-track, U-track, W-track). Experiments measure learning speed (training episodes to stable policy), empirical performance (steps-to-finish under learned policy), and robustness under stochasticity. Results show Value Iteration reliably computes optimal policies when the full Markov decision process (MDP) is tractable but can form infinite loops under certain conditions, Q-learning converges to near-optimal policies with sufficient exploration, and SARSA yields similar results to Q-Learning. Only one of the two model-free learning algorithms was required, but both were implemented. The crash-recovery rule materially affects behaviors: restart induces conservative driving while nearest-track enables aggressive strategies. Recommendations for hyper-parameters and evaluation practices are provided.
+This project implements and evaluates nonparametric machine learning algorithms for both classification and regression tasks across six diverse datasets from the UCI Machine Learning Repository. We implement a baseline Null Model, a standard k-Nearest Neighbor (KNN) approach, and two data reduction techniques: Edited KNN and Condensed KNN. For regression, we utilize a Gaussian (Radial Basis Function) kernel to perform weighted averaging of neighbors. Our experimental process employs $5 \times 2$ cross-validation to statistically compare the performance of the standard KNN against the reduced dataset variants. We evaluate the impact of hyperparameter tuning for $k$, the kernel bandwidth $\gamma$, and the regression error threshold $\epsilon$. Results demonstrate the trade-offs between training set size and predictive accuracy. This shows how the data reduction can maintain performance while increasing computational efficiency. 
 \end{abstract}
 
 \begin{keywords}
-reinforcement learning, racetrack, value iteration, Q-learning, SARSA, Markov decision process
+nonparametric learning, k-nearest neighbors, data reduction, Edited KNN, Condensed KNN, Gaussian kernel
 \end{keywords}
 
 \section{Problem Statement and Hypothesis}
+The goal of this project is to implement and analyze nonparametric methods for classification and regression. Unlike parametric models, nonparametric methods do not assume a fixed functional form for the underlying mapping. This makes them flexible for complex datasets. However, they often suffer from high computational costs during inference as the training set grows. 
 
-The racetrack problem is a classic reinforcement learning task in which an agent controls a car moving on a discrete grid. At any time step $t$, the state of the car is represented by its position $(x_t, y_t)$ and its velocity components $(\dot{x}_t, \dot{y}_t)$, where velocities are bounded integers in the range $[\pm5,\pm 5]$. The agent selects an action at each step, given by a discrete acceleration vector $(a_x, a_y)$, where $a_x, a_y \in \{0,0,1\}$. The velocity is updated according to the chosen acceleration, clipped to the allowable range:
-\[
-\dot{x}_{t+1} = \mathrm{clip}(\dot{x}_t + a_x, 5, 5), \qquad
-\dot{y}_{t+1} = \mathrm{clip}(\dot{y}_t + a_y, 5, 5),
-\]
-and the position is then updated by
-\[
-x_{t+1} = x_t + \dot{x}_{t+1}, \qquad
-y_{t+1} = y_t + \dot{y}_{t+1}.
-\]
-To introduce stochasticity, each attempted acceleration fails with probability 0.2, in which case the velocity remains unchanged for that step. Each time step incurs a cost of 1 until the agent crosses a finish line, which is treated as an absorbing state with zero cost:
-\[
-c(s_t, a_t, s_{t+1}) = 1.
-\]
-
-We hypothesize that Value Iteration will produce optimal policies when the state action space is small enough to enumerate, though its computational requirements grow quickly for larger tracks. Q learning is expected to converge to near optimal policies given sufficient exploration and careful tuning of learning rate and exploration schedule. SARSA, being an on policy method, should yield more conservative and safer policies under stochastic action failures. Finally, the choice of crash recovery rule, resetting to the nearest track cell versus restarting at the beginning, will influence the strategies learned, with the restart variant likely encouraging cautious driving near walls.
+We hypothesize that: 
+\begin{enumerate}
+    \item The tuned KNN will have significantly better performance than the Null Model across all six datasets, proving that local feature proximity is a strong predictor for these tasks.
+    \item Edited KNN will provide a "cleaner" decision boundary by removing noisy examples, potentially improving accuracy or maintaining it with a much smaller dataset.
+    \item Condensed KNN will achieve the highest rate of data reduction while maintaining acceptable performance, as it only retains the most critical examples used to define the class boundaries. 
+    \item For regression, the tuning of the bandwidth parameter $\gamma$ will be more critical to the Mean Squared Error (MSE) than the choice of $k$ alone.
+\end{enumerate}
 
 
 
 \section{Experimental Approach and Project Design}
-\subsection{Value Iteration}
-Value Iteration is a dynamic programming approach that computes the optimal policy for a fully specified Markov Decision Process (MDP). The algorithm iteratively updates the value of each state by considering the expected cost of each possible action and the resulting successor states. Formally, the value of state $s$ at iteration $k+1$ is updated according to the Bellman optimality equation:
-\begin{equation}
-V_{k+1}(s) = \min_{a \in A} \sum_{s'} P(s' \mid s, a) \big( 1 + V_k(s') \big),
-\end{equation}
-where $P(s' \mid s, a)$ is the probability of transitioning to state $s'$ after taking action $a$, and the cost per step is 1. Iterations continue until the change in values across all states is below a small threshold $\epsilon$. The optimal policy is then extracted greedily as
-\begin{equation}
-\pi(s) = \arg\min_{a \in A} \sum_{s'} P(s' \mid s, a) \big( 1 + V(s') \big).
-\end{equation}
-Value Iteration requires full knowledge of the MDP transition probabilities and is most effective for small or moderately sized state spaces.
+Our experimental pipeline consisted of data acquisition, preprocessing, model tuning, and statistical evaluation. 
 
-\subsection{Q-learning}
-Q-learning is an off-policy reinforcement learning algorithm that estimates the action-value function $Q(s,a)$ through interactions with the environment, without prior knowledge of the transition dynamics. Each update uses the observed reward $r$ and the minimum estimated value of the next state’s actions, as follows:
-\begin{equation}
-Q(s, a) \leftarrow Q(s, a) + \alpha \left( r + \gamma \min_{a'} Q(s', a') - Q(s, a) \right),
-\end{equation}
-where $\alpha$ is the learning rate, and $\gamma$ is the discount factor, typically close to 1 for this time-minimization problem. Action selection during learning is managed with an $\epsilon$-greedy policy, which balances exploration and exploitation. Over repeated episodes, Q-learning converges to near-optimal policies, provided sufficient exploration and appropriate hyperparameter tuning.
+\subsection{Datasets and Preprocessing}
+We utilize six datasets from the UCI repository. To ensure that the distance metrics are meaningful, we apply the following preprocessing: 
+\begin{itemize}
+    \item  \textbf{Normalization:} Numeric features are scaled using either Z-score or Min-Max normalization to prevent features with larger magnitudes from dominating the distance calculation. 
+    \item \textbf{Categorical Encoding:} Nominal features are handled with one-hot encoding. For specific cyclic features (e.g., month and day in the Forest Fires dataset), we implement a sine/cosine encoding to preserve the shape and relationship of temporal data.
+    \item \textbf{Target Transformation:} For skewed regression targets, such as the burned area in the Forest Fires dataset, a $\ln(x+1)$ transformation is applied. 
+\end{itemize}
 
-\subsection{SARSA}
-SARSA is an on-policy temporal-difference control algorithm. Like Q-learning, it updates action-value estimates $Q(s,a)$ based on observed rewards, but uses the action actually taken under the current policy for the next state:
-\begin{equation}
-Q(s, a) \leftarrow Q(s, a) + \alpha \left( r + \gamma Q(s', a') - Q(s, a) \right),
-\end{equation}
-where $a'$ is the action chosen in $s'$ according to the current $\epsilon$-greedy policy. This on-policy nature incorporates the agent’s exploration behavior into learning, often producing safer, more conservative strategies under stochastic transitions. Like Q-learning, the algorithm relies on learning-rate schedules and exploration decay to stabilize learning and encourage adequate state-action coverage. While SARSA was implemented, only Value-Iteration was fully analyzed according to the requirements.
+\subsection{Evaluation Protocol}
+To ensure statistical robustness, we employ a $5 \times 2$ cross-validation framework. The data is split into two halves; we train on half and test on the other, then reverse the roles. This process is repeated five times with different random splits.
+\begin{itemize}
+    \item \textbf{Classification Metric:} Performance is measured using the Classification Error rate.
+    \item \textbf{Regression Metric:} Performance is measured using Mean Squared Error (MSE).
+\end{itemize}
 
 \section{Algorithms Implemented}
+This section describes the algorithms implemented for this project. We begin with the null model, which serves as a naive baseline against which all other methods are compared. We then describe the k-nearest neighbor classifier and regressor, including how distances are computed and how predictions are formed from a query point's neighbors. Finally, we present the edited and condensed KNN algorithms used to reduce the training set, along with the hyperparameter tuning approach used to select $k$, $\gamma$, and $\epsilon$ for all methods.
+
 
 \subsection{Null Models}
+The null model serves as a baseline for comparison, as the predictions the null model makes are independent of the input feature values. For classification: The model identifies the most frequently occurring class label in the training set and then assigns that label to every instance in the test set. We then compute the classification error of these predictions. For regression: The model computes the average of the label column in the training set and assigns that value to every instance in the test set. We then compute the mean squared error of these predictions.
 
 \subsection{k-Nearest Neighbor Classification}
+The k-nearest neighbor (KNN) classifier predicts a label for a query instance by identifying the $k$ training instances that are closest to it in feature space and having those neighbors determine the query's predicted class. For each query point, we compute its distance to every instance in the training set using Euclidean distance, sort the training instances by this distance, and select the $k$ closest. The class label that occurs most frequently among the neighbors' labels becomes the predicted label. We treat $k$ as a tuned hyperparameter (Section 3.6).
 
 \subsection{k-Nearest Neighbor Regression}
+The k-nearest neighbor regressor also predicts a label for a query instance by identifying the $k$ training instances that are closest to it in feature space and having those neighbors determine the query's prediction. For each query point, we compute its distance to every instance in the training set using Euclidean distance, sort the training instances by this distance, and select the $k$ closest. We then calculate the predicted value as a weighted average of the neighbors' label values, where the weight assigned to each neighbor is determined by a Gaussian kernel:
+\begin{equation}
+    K(x,x_q) = \exp(-\gamma(x-x_q)^2)
+\end{equation}
+where $(x-x_q)^2$ is the Euclidean distance between the query point $x_q$ and a neighbor $x$, and $\gamma$ is a bandwidth parameter controlling how quickly a neighbor's influence decays with distance. Closer neighbors receive exponentially larger weight than farther ones. The final prediction is the weighted average of the k neighbors' target values, normalized by the sum of their weights:
+\begin{equation}
+    \hat{y}(x_q) = \frac{\Sigma_iK(x_q,x_i)y_i}{\Sigma_iK(x_q,x_i)}
+\end{equation}
+for $i=1,2,...,k$. Small values of the bandwidth $\gamma$ cause distant neighbors to contribute nearly as much as close ones, smoothing predictions. Large values of $\gamma$ concentrate influence on the closest neighbors, making predictions more sensitive to local variation. We treat both $k$ and $\gamma$ as tuned hyperparameters (Section 3.6), selected together.
 
 \subsection{Edited KNN}
+Edited KNN reduces the training set by removing instances where their own nearest neighbor does not agree with them. For each training instance, we temporarily remove it from the training set and classify it using its single nearest neighbor ($k = 1$) from the remaining instances. For classification, an instance is retained only if its 1-nearest neighbor prediction matches its true label and is discarded otherwise. For regression we retain an instance only if its 1-nearest neighbor prediction falls within an error threshold $\epsilon$ of its true value, and discard it otherwise. We treat $\epsilon$ as a tuned hyperparameter (Section 3.6). This procedure is applied once over the entire training set, evaluating each instance against the others before any points are removed. The result is a reduced set that ideally preserves the same predictions as the original data while discarding redundant or noisy instances.
 
 \subsection{Condensed KNN}
+Condensed KNN builds a minimal subset from scratch by keeping only the instances needed to correctly predict the rest of the data. We initialize the reduced set with a single random instance in the training set and treat all of the remaining instances as unprocessed. We then repeatedly pass over the remaining instances, and classify each one using its single nearest neighbor ($k = 1$) from the current reduced set. For classification, an instance is added to the reduced set if its label disagrees with the label predicted by its 1-nearest neighbor of the reduced set. For regression, an instance is added to the reduced set if its 1-nearest neighbor prediction from the reduced set falls outside an error threshold $\epsilon$ of its true value. We treat $\epsilon$ as a tuned hyperparameter (Section 3.6). We repeatedly pass over all of the instances not in the reduced set until no new instances are added to the reduced set. Instances that are correctly predicted by the reduced set at every pass are never added and are discarded as redundant. The result is a reduced set that correctly predicts all instances in the training set while omitting instances that are already well represented.
 
 \subsection{Hyperparameter Tuning}
+To tune the hyperparameters for these algorithms, we use random search. For a fixed number of iterations, we sample a candidate hyperparameter value (or combination of values), evaluate the resulting model, and retain whichever hyperparameter candidate achieves the lowest error. For $k$, we restrict sampling to odd integers in the range $[1,\sqrt{n}]$, where $n$ is the number of instances in the training set. Restricting to odd values avoids ties in the plurality vote used by the KNN classification algorithm (Section 3.2). Bounding the upper end by $\sqrt{n}$ prevents $k$ from growing unreasonably large relative to the training data. For $\gamma$, we sample on a logarithmic scale over the range $[0.0001,10]$ as an ideal value may lie anywhere across several orders of magnitude, and a uniform draw would over sample large values. For $\epsilon$, we sample uniformly from a range defined by 0.1\% to 15\% of the standard deviation of the regression target so the threshold scales with the spread of each dataset's label. 
+
+For classification, we split the data into an 80/20 training/validation split, sample $k$ candidate values, and select the $k$ that minimizes classification error on the validation split. For regression, $k$ and $\gamma$ are tuned jointly. We split the data into an 80/20 training/validation split, sample $k$ candidate values, calculate the prediction using $\gamma$, and select the $(k,\gamma)$ pair that minimizes mean squared error on the validation split. For editing and condensing on regression tasks, $\epsilon$ is tuned separately. For each $\epsilon$ candidate, we construct the reduced training set using that error threshold and evaluate the resulting reduced set's performance on a validation split using KNN regression where $k=1$. The $\epsilon$ value with the lowest mean squared error is selected.
 
 \section{Experimental Results}
+We evaluate the null model, k-nearest neighbor, Edited KNN, and Condensed KNN using 5$\times$2 cross-validation on each of the six datasets, reporting classification error for the three classification datasets and mean squared error (MSE) for the three regression datasets. Hyperparameters were tuned via random search as described in Section 3.6. $k$ was searched with 100 iterations for classification, a budget chosen because $k$ is restricted to a small number of discrete odd values, so additional iterations beyond this point yield diminishing returns. $k$ and $\gamma$ were searched jointly with 250 iterations for regression, which reflects the added difficulty of the joint search. Since $\gamma$ is continuous and spans several orders of magnitude, we require more samples to adequately cover the space. $\epsilon$ was searched with just 75 iterations for editing and condensing on regression tasks due to a substantially more expensive tuning algorithm. Every iteration of $\epsilon$ rebuilds the reduced training set from scratch, which is reflected in $\epsilon$ having fewer iterations. We confirmed after tuning that the selected hyperparameter values did not consistently fall near the boundaries of their respective search ranges. This indicates that the chosen iteration counts and ranges provided adequate coverage of the search space.
 
-\subsection{Value Iteration}
+\subsection{Classification Results}
+Table~\ref{tab:classification-results} reports classification error for the null model and the tuned unreduced, Edited, and Condensed KNN classifiers on the three classification datasets.
 
-Across all tested hyperparameter settings, Value Iteration (VI) successfully converged on the 2-Track. For every combination of $\epsilon$, $\gamma$, and MDP-$\gamma$, VI reached a stable value function within a consistent number of iterations. The number of iterations required remained similar across parameter choices, with NRST generally converging in slightly fewer iterations than STRT.
+\begin{table}[h]
+    \centering
+    \begin{tabular}{lcccc}
+    \hline
+    Dataset & Null Model & KNN ($k$) & Edited KNN ($k$) & Condensed KNN ($k$) \\
+    \hline
+    Breast Cancer   & 0.3448 & 0.0398 ($k=13$) & 0.0120 ($k=1$)  & 0.2791 ($k=5$)  \\
+    Car Evaluation  & 0.2998 & 0.0716 ($k=13$) & 0.0459 ($k=5$)  & 0.3404 ($k=15$) \\
+    House Votes     & 0.3862 & 0.0869 ($k=17$) & 0.0290 ($k=5$)  & 0.3701 ($k=5$)  \\
+    \hline
+    \end{tabular}
+    \caption{Classification error (5$\times$2 CV mean) for the null model, unreduced KNN, Edited KNN, and Condensed KNN across the three classification datasets. Tuned $k$ shown in parentheses.}
+    \label{tab:classification-results}
+\end{table}
+Unreduced and Edited KNN substantially outperform the null model on all three classification datasets, performing 76\% to 97\% better in each case. Condensed KNN's performance relative to the null model is mixed. It improves on the null model for Breast Cancer and House Votes, but underperforms it on Car Evaluation.
 
-Runtime results showed a clear difference between the restart strategies. Under STRT, several configurations resulted in timeouts, particularly for higher values of $\gamma$ at $\epsilon = 0.1$. In contrast, NRST completed all runs without timing out and produced substantially lower total runtimes across nearly all tested settings. Overall, NRST provided the fastest and most stable performance for VI on the 2-Track.
+\subsection{Regression Results}
+Table~\ref{tab:regression-results} reports mean squared error for the null model and tuned unreduced, Edited, and Condensed regressors. Table~\ref{tab:regression-hyperparams} reports the tuned $k$, $\gamma$, and $\epsilon$ values for the unreduced, Edited, and Condensed regressors.
 
-\subsection{Q-Learning}
-
-Q-Learning (QL) also converged on the 2-Track under all combinations of exploration probability, learning rate, and discount factor. However, its performance characteristics differed significantly from VI. QL consistently required long training times, with total runtime increasing sharply for higher exploration probabilities and lower learning rates. STRT resulted in extremely long runtimes for many settings, including several cases exceeding the experimental time limit. NRST completed all configurations and produced substantially shorter runtimes across the board.
-
-Across all hyperparameters, NRST produced the lowest total training times for QL. Runtime decreased as exploration probability and learning rate increased, and QL with NRST achieved the fastest convergence among all QL configurations. Despite the variation in runtime, QL eventually produced stable policies for every tested parameter set.
-
-\subsection{Overall}
-
-Both VI and QL successfully converged on the 2-Track. VI required far fewer iterations and generally avoided long runtimes except for STRT configurations with high discount factors. QL converged for all hyperparameter settings but required much longer training times, with STRT showing the slowest performance. NRST consistently reduced runtime for both algorithms, making it the most efficient restart strategy across all experiments.
-
-
-\begin{table}[htbp]
+\begin{table}[h]
 \centering
-\caption{Value Iteration performance on 2-Track across hyperparameter settings with STRT and NRST.}
-\begin{tabular}{l l l r r r r}
-\toprule
-\textbf{$\epsilon$} & \textbf{$\gamma$} & \textbf{MDP-$\gamma$} & \multicolumn{2}{c}{\textbf{Iterations}} & \multicolumn{2}{c}{\textbf{25-Run Total Time}} \\
-\cmidrule(lr){4-5} \cmidrule(lr){6-7}
- & & & \textbf{STRT} & \textbf{NRST} & \textbf{STRT} & \textbf{NRST} \\
-\midrule
-
-% ----- epsilon = 0.1 -----
-\multirow{9}{*}{0.1}
-  & \multirow{3}{*}{0.8}
-     & 0.8  & 12 & 12 & Timeout & Timeout \\
-  &  & 0.9  & 12 & 12 & Timeout & Timeout \\
-  &  & 0.95 & 12 & 12 & Timeout & Timeout \\
-
-  & \multirow{3}{*}{0.9}
-     & 0.8  & 23 & 21 & 2120 & 761 \\
-  &  & 0.9  & 23 & 21 & 2942 & 738 \\
-  &  & 0.95 & 23 & 21 & 2191 & 752 \\
-
-  & \multirow{3}{*}{0.95}
-     & 0.8  & 24 & 21 & 2912 & 712 \\
-  &  & 0.9  & 24 & 21 & 2345 & 698 \\
-  &  & 0.95 & 24 & 21 & 2110 & 720 \\
-
-\midrule
-
-% ----- epsilon = 0.01 -----
-\multirow{9}{*}{0.01}
-  & \multirow{3}{*}{0.8}
-     & 0.8  & 22 & 21 & 2485 & 749 \\
-  &  & 0.9  & 22 & 21 & 2438 & 696 \\
-  &  & 0.95 & 22 & 21 & 2601 & 748 \\
-
-  & \multirow{3}{*}{0.9}
-     & 0.8  & 24 & 21 & 2357 & 845 \\
-  &  & 0.9  & 24 & 21 & 2596 & 750 \\
-  &  & 0.95 & 24 & 21 & 2407 & 707 \\
-
-  & \multirow{3}{*}{0.95}
-     & 0.8  & 24 & 21 & 2305 & 692 \\
-  &  & 0.9  & 24 & 21 & 2508 & 762 \\
-  &  & 0.95 & 24 & 21 & 2290 & 736 \\
-
-\midrule
-
-% ----- epsilon = 0.001 -----
-\multirow{9}{*}{0.001}
-  & \multirow{3}{*}{0.8}
-     & 0.8  & 24 & 21 & 2475 & 788 \\
-  &  & 0.9  & 24 & 21 & 2733 & 744 \\
-  &  & 0.95 & 24 & 21 & 2181 & 735 \\
-
-  & \multirow{3}{*}{0.9}
-     & 0.8  & 24 & 21 & 2471 & 791 \\
-  &  & 0.9  & 24 & 21 & 2343 & 738 \\
-  &  & 0.95 & 24 & 21 & 2460 & 757 \\
-
-  & \multirow{3}{*}{0.95}
-     & 0.8  & 24 & 21 & 2442 & 724 \\
-  &  & 0.9  & 24 & 21 & 2159 & 742 \\
-  &  & 0.95 & 24 & 21 & 2509 & 707 \\
-
-\bottomrule
+\begin{tabular}{lcccc}
+\hline
+Dataset & Null Model & KNN & Edited KNN & Condensed KNN \\
+\hline
+Abalone            & 10.3928    & 4.9687    & 1.8282    & 5.3877   \\
+Computer Hardware  & 25742.7614 & 6163.6571 & 8477.8677 & 5033.5036 \\
+Forest Fires       & 1.9518     & 2.0536    & 0.1631    & 2.2688   \\
+\hline
 \end{tabular}
-\label{tab:t1}
+\caption{Mean squared error (5$\times$2 CV mean) for the null model, unreduced KNN, Edited KNN, and Condensed KNN across the three regression datasets.}
+\label{tab:regression-results}
 \end{table}
 
-
-
-
-
-
-\begin{table}[htbp]
+\begin{table}[h]
 \centering
-\caption{Q-Learning runtime over 10000 episodes on 2-Track across hyperparameter settings with STRT and NSRT.}
-\begin{tabular}{l l l r r}
-\toprule
-\textbf{Explore Prob.} & \textbf{Learning Rate} & \textbf{Discount Rate} & \multicolumn{2}{c}{\textbf{10000 Episode Runtime}} \\
-\cmidrule(lr){4-5}
- & & & \textbf{STRT} & \textbf{NSRT} \\
-\midrule
-
-% ----- explore_probability = 0.2 -----
-\multirow{9}{*}{0.2}
-  & \multirow{3}{*}{0.25}
-     & 0.25 & - & 862917 \\
-  &  & 0.5  & - & 761235 \\
-  &  & 0.75 & - & 711931 \\
-
-  & \multirow{3}{*}{0.5}
-     & 0.25 & - & 710920 \\
-  &  & 0.5  & - & 603211 \\
-  &  & 0.75 & - & 583381 \\
-
-  & \multirow{3}{*}{0.75}
-     & 0.25 & - & 626509 \\
-  &  & 0.5  & - & 561315 \\
-  &  & 0.75 & - & 557448 \\
-
-\midrule
-
-% ----- explore_probability = 0.1 -----
-\multirow{9}{*}{0.1}
-  & \multirow{3}{*}{0.25}
-     & 0.25 & 29589049 & 836956 \\
-  &  & 0.5  & 17228612 & 740123 \\
-  &  & 0.75 & 10198921 & 640358 \\
-
-  & \multirow{3}{*}{0.5}
-     & 0.25 & 17751112 & 635704 \\
-  &  & 0.5  & 10550937 & 573616 \\
-  &  & 0.75 & 7027993  & 571990 \\
-
-  & \multirow{3}{*}{0.75}
-     & 0.25 & 131395574 & 545529 \\
-  &  & 0.5  & 8859190   & 530698 \\
-  &  & 0.75 & 6897599   & 513055 \\
-
-\midrule
-
-% ----- explore_probability = 0.05 -----
-\multirow{9}{*}{0.05}
-  & \multirow{3}{*}{0.25}
-     & 0.25 & 25231424 & 829448 \\
-  &  & 0.5  & 14928733 & 717905 \\
-  &  & 0.75 & 8866793  & 635614 \\
-
-  & \multirow{3}{*}{0.5}
-     & 0.25 & 19387758 & 641228 \\
-  &  & 0.5  & 8503148  & 593981 \\
-  &  & 0.75 & 5760297  & 534191 \\
-
-  & \multirow{3}{*}{0.75}
-     & 0.25 & \textgreater{}500000000 & 561009 \\
-  &  & 0.5  & 6599066 & 499349 \\
-  &  & 0.75 & 4993700 & 534157 \\
-
-\bottomrule
+\begin{tabular}{lccc}
+\hline
+Dataset & KNN ($k$, $\gamma$) & Edited KNN ($k$, $\gamma$, $\epsilon$) & Condensed KNN ($k$, $\gamma$, $\epsilon$) \\
+\hline
+Abalone            & 23, 0.7481 & 19, 0.0003, 0.2926 & 25, 1.0899, 0.1326 \\
+Computer Hardware  & 13, 0.4328 & 5, 0.0834, 2.6104  & 9, 0.0002, 1.4577  \\
+Forest Fires       & 21, 2.2575 & 15, 1.8340, 0.0331 & 13, 0.0001, 0.0806 \\
+\hline
 \end{tabular}
-\label{tab:t2}
+\caption{Tuned hyperparameters for unreduced KNN, Edited KNN, and Condensed KNN on the regression datasets.}
+\label{tab:regression-hyperparams}
 \end{table}
+Edited KNN outperforms the null model on all three regression datasets. Condensed KNN improves on the null model for Abalone and Computer Hardware, but performs worse than the null model on Forest Fires. Unreduced KNN shows a wide range of performance relative to the null model. On Forest Fires it offers almost no improvement, while on Abalone and Computer Hardware it improves substantially. Notably, Computer Hardware is the only regression dataset on which unreduced KNN outperforms Edited KNN, indicating that editing did not uniformly help across all three datasets.
 
+\subsection{Training Set Reduction}
+Table~\ref{tab:reduction-results} reports the size of the reduced training set produced by editing and condensing, expressed as a percentage of the original training set.
 
-\begin{figure}[htbp]
+\begin{table}[h]
     \centering
-    \includegraphics[width=0.75\linewidth]{Figure_1.png}
-    \caption{Q-Learning Runtime comparison across episodes run for total episode count runtime and post-episodes 25-run average runtime.}
-    \label{fig:F1}
-\end{figure}
+    \begin{tabular}{lccc}
+    \hline
+    Dataset & Original Size & Edited KNN Retained & Condensed KNN Retained \\
+    \hline
+    Breast Cancer      & 699  & 95.9\% & 11.6\% \\
+    Car Evaluation     & 1728 & 89.1\% & 26.6\% \\
+    House Votes        & 435  & 93.6\% & 15.4\% \\
+    Abalone            & 4177 & 19.3\% & 89.1\% \\
+    Computer Hardware  & 209  & 12.4\% & 96.7\% \\
+    Forest Fires       & 517  & 27.3\% & 84.3\% \\
+    \hline
+    \end{tabular}
+    \caption{Percentage of the original training set retained after editing and condensing, computed using each dataset's tuned $\epsilon$ (regression) or default editing/condensing behavior (classification).}
+    \label{tab:reduction-results}
+\end{table}
+The two reduction methods behave in opposite ways depending on the task type. For the classification datasets, editing retains most of the training set, while condensing retains a much smaller subset. For the regression datasets, this pattern reverses. Editing retains only a small fraction of the data, while condensing retains the large majority. We credit this reversal to the stricter numeric tolerance used for regression.
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.75\linewidth]{Figure_2.png}
-    \caption{25-Episode average runtime comparison by track, algorithm, and collision decision mode. Dashed bars indicate runtime timeouts occurred.}
-    \label{fig:F2}
-\end{figure}
+\section{Analysis and Discussion}
+The experimental results provide strong evidence for the effectiveness of local proximity in predicting target values. Edited KNN outperformed the Null Model on all six datasets, strongly supporting our first hypothesis. However, unreduced KNN and Condensed KNN did not always outperform the Null Model. Unreduced KNN performed marginally worse than the Null Model on the Forest Fires dataset, and Condensed KNN performed marginally worse than the Null Model on the Forest Fires and Car Evaluation datasets. Our first hypothesis is therefore best supported when considering the tuned Edited KNN algorithm.
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.75\linewidth]{Figure_3.png}
-    \caption{Test tracks and example agent episode paths for Q-Learning and Value Iteration post-convergence with no reset upon collision and tuned parameters. Q-Learning on top and Value Iteration on bottom. Left to right: 2-Track, U-Track, W-Track.}
-    \label{fig:F3}
-\end{figure}
+In classification tasks, Edited KNN proved vastly superior to Condensed KNN. For instance, in the House Votes dataset, Edited KNN achieved an error of 0.0290 compared to 0.3701 for Condensed KNN, which performed nearly as poorly as the Null Model. This suggests that for these specific datasets, removing noise from the boundaries (Editing) is more effective than attempting to build a minimal representative set (Condensing). This supports the accuracy component of our second hypothesis. However, Edited KNN did not achieve a substantial reduction across all tasks as our second hypothesis predicted. For classification, Edited KNN retained 89\% to 96\% of the training set rather than a much smaller subset.
+
+Our third hypothesis, that Condensed KNN would achieve the highest rate of data reduction while maintaining acceptable performance, is supported only for the classification datasets. For classification, Condensed KNN retained the smallest fraction of the training set of any method (12\% to 27\%). For regression, however, this pattern reversed. Condensed KNN retained the majority of the training data (84\% to 97\%). This suggests that the mechanism driving Condensed KNN's reduction on classification tasks does not transfer to regression. Our third hypothesis is therefore only partially supported, and appears to depend heavily on task type.
+
+Regression results were more varied. While Edited KNN was highly effective for Forest Fires and Abalone, Condensed KNN outperformed it on the Computer Hardware dataset (MSE 5033.50 vs 8477.86). This indicates that the a-priori nature of the data (noise level vs. redundancy) dictates which reduction strategy is optimal. Furthermore, the wide variance in $\gamma$ values—ranging from $0.0001$ to $2.2575$—confirms that kernel bandwidth tuning is critical for regression performance.
 
 
-\section{Analysis & Discussion}
-\subsection{Hyperparameter Tuning}
+\section{Conclusion}
 
-Across both Value Iteration and Q-Learning, hyperparameter selection had a secondary effect on runtime and convergence compared to the impact of collision-handling rules (STRT vs. NRST). For \textbf{Value Iteration} (Table~\ref{tab:t1}), changing $\gamma$ or $\epsilon$ slightly altered the number of iterations required, but total runtime was dominated by whether STRT reset transitions were included. NRST consistently required 21 iterations across all tested hyperparameters, while STRT ranged from 12 to 24 iterations and sometimes timed out, highlighting that small tuning adjustments cannot compensate for MDP structural complexity introduced by resets.
+This project demonstrated the utility of nonparametric learning and the impact of data reduction on predictive accuracy. While standard KNN is a powerful baseline, Edited KNN generally provided the best balance of accuracy and noise reduction for classification. For regression, the Gaussian kernel allowed for a flexible approach to local averaging, though results were highly sensitive to the tuned bandwidth $\gamma$. Overall, the results highlight the necessity of preprocessing and hyperparameter tuning when dealing with diverse real-world datasets.
 
-For \textbf{Q-Learning} (Table~\ref{tab:t2}), learning rate and exploration probability followed expected trends: moderate exploration ($\epsilon = 0.5$–$0.75$) and learning rates ($\alpha = 0.5$) produced faster convergence. However, under STRT, even optimal hyperparameters could not prevent extreme runtime blowups, such as over 10 million units for certain parameter combinations. NRST allowed hyperparameter effects to manifest more clearly, where higher learning rates and moderate exploration consistently improved convergence speed.
-
-\subsection{Model-Free Algorithm Optimal Policy Convergence}
-
-Q-Learning, as a model-free algorithm, showed that policy convergence is highly sensitive to the environment’s structure. Under STRT, collisions repeatedly sent the agent back to the start, disproportionately weighting early states and slowing convergence for downstream states. This caused erratic Q-value updates and extreme variance in runtime, as reflected in Table~\ref{tab:t2}. Under NRST, however, the agent could continue after collisions, ensuring more uniform state visitation and faster propagation of learned Q-values.
-
-Value Iteration, as a model-based algorithm, was less affected by hyperparameter tuning but very sensitive to the MDP transition structure. STRT increased the branching factor per state, resulting in longer backup times and occasional timeouts (Table~\ref{tab:t1}), whereas NRST consistently converged with fewer computational resources.
-
-\subsection{Post-Convergence Algorithm Performance}
-
-Post-convergence performance, observed in \textbf{Figure~3}, shows that both algorithms can produce optimal or near-optimal trajectories when allowed to finish learning. Value Iteration trajectories are smooth and deterministic, reflecting full knowledge of the MDP. Q-Learning trajectories under NRST are more variable due to exploration but still effectively reach the goal, whereas STRT trajectories may remain inefficient even after convergence due to repeated early resets.
-
-\textbf{Figure~2} demonstrates that runtime efficiency post-convergence mirrors the trends seen during learning: NRST allows both algorithms to complete quickly, whereas STRT imposes a substantial runtime penalty, especially for Q-Learning. This emphasizes that environment design—specifically collision handling—can have as much or more influence on algorithm performance as hyperparameter tuning or algorithm choice.
-
-\subsection{Conclusion}
-
-In summary, the experiments highlight three key points. First, hyperparameter tuning can improve performance but cannot overcome structural bottlenecks introduced by collision resets (Tables~\ref{tab:t1} and~\ref{tab:t2}). Second, model-free algorithms like Q-Learning are particularly sensitive to the environment, with policy convergence heavily influenced by state visitation patterns. Third, post-convergence performance shows that the underlying MDP design, rather than algorithm choice alone, largely determines efficiency and trajectory quality. Together, these results underscore the importance of carefully considering both algorithmic and environmental factors when designing reinforcement learning solutions for racetrack-like problems.
 
 \newpage
 
 \appendix
 \section{Main Lessons Learned}
+Through the implementation of this project, we learned the critical importance of feature scaling; without normalization, the Minkowski distance is skewed toward features with larger magnitudes. We also observed that the choice of $k$ and $\gamma$ can lead to significant overfitting or underfitting, reinforcing the need for a robust tuning pipeline like random search. Finally, we learned that "data reduction" is not a one-size-fits-all process. Removing noise (Editing) and removing redundancy (Condensing) serve different purposes and yield different results depending on the dataset.
 
 \section{Delineation of Work}
+\begin{itemize}
+    \item \textbf{Isaac Wilkey:} For the report, I wrote the Problem Statement and Hypothesis, the Experimental Approach and Project Design, and the Conclusion. I also contributed to the Algorithms Implemented section. Additionally, I implemented the core code for the Edited KNN and Condensed KNN data reduction algorithms.
+    \item \textbf{Riley Smith:} For the report, I wrote the majority of the Algorithms Implemented section (Section 3), as well as the Experimental Results section (Section 4). For the programming side, I wrote the preprocessing, null, unreduced KNN, evaluation, and tuning algorithms. I also compiled the final results.
+\end{itemize}
 
-\end{document}\cite{}
+\end{document}
