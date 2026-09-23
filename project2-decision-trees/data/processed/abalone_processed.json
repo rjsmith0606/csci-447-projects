@@ -1,0 +1,10 @@
+{
+  "sex": "categorical",
+  "length": "numeric",
+  "diameter": "numeric",
+  "height": "numeric",
+  "whole_weight": "numeric",
+  "shucked_weight": "numeric",
+  "viscera_weight": "numeric",
+  "shell_weight": "numeric"
+}

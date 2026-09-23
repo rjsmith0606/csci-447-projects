@@ -1,0 +1,14 @@
+{
+  "X": "numeric",
+  "Y": "numeric",
+  "month": "categorical",
+  "day": "categorical",
+  "FFMC": "numeric",
+  "DMC": "numeric",
+  "DC": "numeric",
+  "ISI": "numeric",
+  "temp": "numeric",
+  "RH": "numeric",
+  "wind": "numeric",
+  "rain": "numeric"
+}

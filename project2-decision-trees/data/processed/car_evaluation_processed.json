@@ -1,0 +1,8 @@
+{
+  "buying": "categorical",
+  "maint": "categorical",
+  "doors": "categorical",
+  "persons": "categorical",
+  "lug_boot": "categorical",
+  "safety": "categorical"
+}

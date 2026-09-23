@@ -1,0 +1,11 @@
+{
+  "clump_thickness": "numeric",
+  "uniformity_of_cell_size": "numeric",
+  "uniformity_of_cell_shape": "numeric",
+  "marginal_adhesion": "numeric",
+  "single_epithelial_cell_size": "numeric",
+  "bare_nuclei": "numeric",
+  "bland_chromatin": "numeric",
+  "normal_nucleoli": "numeric",
+  "mitoses": "numeric"
+}

@@ -1,0 +1,18 @@
+{
+  "handicapped_infants": "categorical",
+  "water_project_cost_sharing": "categorical",
+  "adoption_of_the_budget_resolution": "categorical",
+  "physician_fee_freeze": "categorical",
+  "el_salvador_aid": "categorical",
+  "religious_groups_in_schools": "categorical",
+  "anti_satellite_test_ban": "categorical",
+  "aid_to_nicaraguan_contras": "categorical",
+  "mx_missile": "categorical",
+  "immigration": "categorical",
+  "synfuels_corporation_cutback": "categorical",
+  "education_spending": "categorical",
+  "superfund_right_to_sue": "categorical",
+  "crime": "categorical",
+  "duty_free_exports": "categorical",
+  "export_administration_act_south_africa": "categorical"
+}
