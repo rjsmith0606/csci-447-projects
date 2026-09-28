@@ -238,8 +238,6 @@ def preprocess_house_votes(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
 
 def preprocess_abalone(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     target_col = "rings"
-    # Unlike Project 1, we KEEP sex rather than dropping it -- trees can
-    # split on it natively without needing one-hot encoding.
     df = label_encode(df, ["sex"])
 
     feature_types = build_feature_types(df, categorical_cols=["sex"], target_col=target_col)
