@@ -88,7 +88,7 @@ def cross_validation_loop(feature_data, label_data, feature_types, mode="classif
     rng = np.random.default_rng(seed)
 
     # Fixed 20% pruning set, never used for training or testing
-    cv_feature, prune_feature, cv_label, prune_label = train_test_split(
+    cv_feature, prune_features, cv_label, prune_label = train_test_split(
         feature_data, label_data, test_size=prune_size, rng=rng)
 
     results = {"unpruned": [], "pruned": []}
@@ -108,7 +108,7 @@ def cross_validation_loop(feature_data, label_data, feature_types, mode="classif
 
             # # Prune a copy so the unpruned tree is left untouched
             pruned_tree = copy.deepcopy(tree)
-            reduced_error_prune(pruned_tree, prune_feature, prune_label)
+            reduced_error_prune(pruned_tree, prune_features, prune_label)
             results["pruned"].append(metric(test_y, predict_all(pruned_tree, test_X)))
 
     return results
