@@ -9,4 +9,4 @@ class TreeNode:
         self.threshold = threshold          # numeric splits only (None for categorical)
         self.split_type = split_type        # 'numeric' | 'categorical' | None for leaves
         self.children = children if children is not None else {}  # 'left'/'right' or category value -> TreeNode
-        self.n_samples = n_samples          # number of training rows that reached this node
+        self.n_samples = n_samples          # number of training rows that reached this nodes

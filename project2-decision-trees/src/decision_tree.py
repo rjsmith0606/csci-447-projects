@@ -114,3 +114,11 @@ class DecisionTree:
         if branch not in node.children: return node.value # category never seen at this node in training
  
         return self.predict_single(node.children[branch], x)
+
+    def size(self):
+        """Calculate the total number of nodes in the decision tree."""
+        def count_nodes(node):
+            if node.is_leaf:
+                return 1
+            return 1 + sum(count_nodes(child) for child in node.children.values())
+        return count_nodes(self.root) if self.root else 0

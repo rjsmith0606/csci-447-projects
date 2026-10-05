@@ -6,7 +6,7 @@ import copy
 import numpy as np
 
 from src.decision_tree import DecisionTree
-from src.pruning import reduced_error_prune
+from src.pruning import reduced_error_pruning
 
 
 def train_test_split(feature_data, label_data, test_size=0.5, rng=None):
@@ -91,7 +91,7 @@ def cross_validation_loop(feature_data, label_data, feature_types, mode="classif
     cv_feature, prune_features, cv_label, prune_label = train_test_split(
         feature_data, label_data, test_size=prune_size, rng=rng)
 
-    results = {"unpruned": [], "pruned": []}
+    results = {"unpruned": [], "pruned": [], "unpruned size": [], "pruned size": []}
 
     for _ in range(n_repeats):
         fold_A_feature, fold_B_feature, fold_A_label, fold_B_label = train_test_split(
@@ -105,10 +105,12 @@ def cross_validation_loop(feature_data, label_data, feature_types, mode="classif
             tree = DecisionTree(mode=mode)
             tree.build_tree(train_X, train_y, feature_types)
             results["unpruned"].append(metric(test_y, predict_all(tree, test_X)))
+            results["unpruned size"].append(tree.size())
 
             # # Prune a copy so the unpruned tree is left untouched
             pruned_tree = copy.deepcopy(tree)
-            reduced_error_prune(pruned_tree, prune_features, prune_label)
+            reduced_error_pruning(pruned_tree, prune_features, prune_label)
             results["pruned"].append(metric(test_y, predict_all(pruned_tree, test_X)))
+            results["pruned size"].append(pruned_tree.size())
 
     return results

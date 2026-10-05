@@ -1,7 +1,7 @@
 # Pruning
 
 import numpy as np
-from tree_node import TreeNode
+from src.tree_node import TreeNode
 
 def evaluate_accuracy(tree, X, y):
     """
