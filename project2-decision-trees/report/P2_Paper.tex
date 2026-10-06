@@ -1,0 +1,128 @@
+\documentclass[twoside,11pt]{article}
+\usepackage{multirow}
+\usepackage{jmlr2e}
+\usepackage{lastpage}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{appendix}
+
+\jmlrheading{26}{2026}{1-\pageref{LastPage}}{10/14/26}{10/14/26}{25-0040}{Isaac Wilkey and Riley Smith}
+\ShortHeadings{Decision Trees with Reduced Error Pruning}{Wilkey and Smith}
+\firstpageno{1}
+
+\begin{document}
+
+\title{Gain-Ratio Classification Trees and MSE Regression Trees with Reduced Error Pruning}
+
+\author{\name Isaac Wilkey \email isaac.wilkey@student.montana.edu\\
+\addr Department of Computer Science \\
+Montana State University \\
+Bozeman, MT, USA
+\AND
+\name Riley Smith \email riley.smith13@student.montana.edu\\
+\addr Department of Computer Science \\
+Montana State University \\
+Bozeman, MT, USA
+}
+\editor{Isaac Wilkey \& Riley Smith}
+
+\maketitle
+
+\begin{abstract}
+TODO
+\end{abstract}
+
+\begin{keywords}
+decision trees, gain ratio, regression trees, reduced error pruning, 5x2 cross-validation
+\end{keywords}
+
+\section{Problem Statement and Hypothesis}
+The goal of this project is to implement and analyze decision trees for classification and regression. A tree grown to completion keeps splitting until its leaves are pure, which allows it to fit noise in the training data. Post-pruning addresses this by removing subtrees that do not help on data not used for training. We implement univariate decision trees using gain ration for classification and mean squared error (MSE) for regression, and compare fully grown trees to trees simplified with reduced error pruning (REP) on six UCI datasets.
+
+We test the following hypotheses using the $5 \times 2$ cv paired $t$ test \citep{dietterich1998, alpaydin2020} at $\alpha = 0.05$, ...
+\begin{enumerate}
+    \item \textbf{H1:} Reduced error pruning produces significantly smaller trees than fully grown trees on every dataset.
+    \item \textbf{H2:} Pruned trees achieve lower mean test error than unpruned trees on a majority (at least four) of the six datasets.
+    \item \textbf{H3:} (MAYBE KEEP?) The relative error reduction from pruning is larger on the regression datasets than on the classification datasets.
+\end{enumerate}
+
+
+
+\section{Experimental Approach and Project Design}
+Our experimental pipeline consisted of data acquisition, preprocessing, model tuning, and statistical evaluation. (CHANGE TODO)
+
+\subsection{Datasets and Preprocessing (UPDATE AND EXPAND AS PER FEEDBACK)}
+We utilize six datasets from the UCI repository. To ensure that the distance metrics are meaningful, we apply the following preprocessing: 
+\begin{itemize}
+    \item  \textbf{Normalization:} Numeric features are scaled using either Z-score or Min-Max normalization to prevent features with larger magnitudes from dominating the distance calculation. 
+    \item \textbf{Categorical Encoding:} Nominal features are handled with one-hot encoding. For specific cyclic features (e.g., month and day in the Forest Fires dataset), we implement a sine/cosine encoding to preserve the shape and relationship of temporal data.
+    \item \textbf{Target Transformation:} For skewed regression targets, such as the burned area in the Forest Fires dataset, a $\ln(x+1)$ transformation is applied. 
+\end{itemize}
+
+\subsection{Evaluation Protocol (UPDATE)}
+To ensure statistical robustness, we employ a $5 \times 2$ cross-validation framework. The data is split into two halves; we train on half and test on the other, then reverse the roles. This process is repeated five times with different random splits.
+\begin{itemize}
+    \item \textbf{Classification Metric:} Performance is measured using the Classification Error rate.
+    \item \textbf{Regression Metric:} Performance is measured using Mean Squared Error (MSE).
+\end{itemize}
+
+\subsection{Statistic Testing? (5x2 t test from textbook) (Mentioned in project requirements)}
+"Run your decision tree implementation on each of the data sets, comparing both pruned and unpruned versions of the trees. These runs should be done with 5 × 2 cross-validation so you can compare your results statistically."
+
+\section{Algorithms Implemented (UPDATE)}
+This section describes the algorithms implemented for this project. We begin with the null model, which serves as a naive baseline against which all other methods are compared. We then describe the k-nearest neighbor classifier and regressor, including how distances are computed and how predictions are formed from a query point's neighbors. Finally, we present the edited and condensed KNN algorithms used to reduce the training set, along with the hyperparameter tuning approach used to select $k$, $\gamma$, and $\epsilon$ for all methods.
+
+
+\subsection{Tree Representation and Growth}
+TODO
+
+\subsection{Classification Splitting: Gain Ratio}
+TODO
+
+\subsection{Regression Splitting: Mean Squared Error}
+TODO
+
+\subsection{Prediction}
+TODO
+
+\subsection{Reduced Error Pruning}
+TODO
+
+
+\section{Experimental Results (UPDATE)}
+We evaluate the null model, k-nearest neighbor, Edited KNN, and Condensed KNN using 5$\times$2 cross-validation on each of the six datasets, reporting classification error for the three classification datasets and mean squared error (MSE) for the three regression datasets. Hyperparameters were tuned via random search as described in Section 3.6. $k$ was searched with 100 iterations for classification, a budget chosen because $k$ is restricted to a small number of discrete odd values, so additional iterations beyond this point yield diminishing returns. $k$ and $\gamma$ were searched jointly with 250 iterations for regression, which reflects the added difficulty of the joint search. Since $\gamma$ is continuous and spans several orders of magnitude, we require more samples to adequately cover the space. $\epsilon$ was searched with just 75 iterations for editing and condensing on regression tasks due to a substantially more expensive tuning algorithm. Every iteration of $\epsilon$ rebuilds the reduced training set from scratch, which is reflected in $\epsilon$ having fewer iterations. We confirmed after tuning that the selected hyperparameter values did not consistently fall near the boundaries of their respective search ranges. This indicates that the chosen iteration counts and ranges provided adequate coverage of the search space.
+
+\subsection{Classification}
+TODO
+
+\subsection{Regression}
+TODO
+
+\subsection{Tree Size}
+TODO
+
+\subsection{Hypothesis Summary?}
+Table with one row per hypothesis, showing supported or not supported and the evidence. (Could also just do discussion)
+
+\section{Analysis and Discussion}
+TODO
+
+
+\section{Conclusion}
+TODO
+
+\bibliography{references}
+
+\newpage
+
+\appendix
+\section{Main Lessons Learned (UPDATE)}
+Through the implementation of this project, we learned the critical importance of feature scaling; without normalization, the Minkowski distance is skewed toward features with larger magnitudes. We also observed that the choice of $k$ and $\gamma$ can lead to significant overfitting or underfitting, reinforcing the need for a robust tuning pipeline like random search. Finally, we learned that "data reduction" is not a one-size-fits-all process. Removing noise (Editing) and removing redundancy (Condensing) serve different purposes and yield different results depending on the dataset.
+
+\section{Delineation of Work (UPDATE)}
+\begin{itemize}
+    \item \textbf{Isaac Wilkey:} For the report, I wrote the Problem Statement and Hypothesis, the Experimental Approach and Project Design, and the Conclusion. I also contributed to the Algorithms Implemented section. Additionally, I implemented the core code for the Edited KNN and Condensed KNN data reduction algorithms.
+    \item \textbf{Riley Smith:} For the report, I wrote the majority of the Algorithms Implemented section (Section 3), as well as the Experimental Results section (Section 4). For the programming side, I wrote the preprocessing, null, unreduced KNN, evaluation, and tuning algorithms. I also compiled the final results.
+\end{itemize}
+
+\end{document}
