@@ -68,6 +68,9 @@ def reduced_error_pruning(tree, X_val, y_val):
             # Recursively prune the child
             node.children[key] = prune_recursive(node.children[key], X[mask], y[mask])
 
+        if len(y) == 0:
+            return TreeNode(is_leaf=True, value=node.value)
+
         # 2. Evaluate current subtree performance
         current_score = evaluate_accuracy_subtree(tree, node, X, y)
 
