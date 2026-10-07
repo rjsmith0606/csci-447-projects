@@ -1,6 +1,6 @@
 Dataset,Unpruned Error,Pruned Error,Mean Unpruned Tree Size,Mean Pruned Tree Size
 Breast Cancer,0.0505,0.0426,31.4,13.6
-Car Evaluation,0.0443,0.0433,113.0,73.8
+Car Evaluation,0.0971,0.1247,212.2,103.2
 House Votes,0.0747,0.05,27.5,6.1
 Abalone,9.1133,6.1419,2002.8,315.3
 Computer Hardware,9752.7891,9333.1269,153.4,42.4

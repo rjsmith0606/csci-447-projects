@@ -221,8 +221,8 @@ def preprocess_car_evaluation(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     # technically ordinal -- so mark ALL of them categorical (multi-way
     # split), not numeric (threshold split). Revisit this if you decide
     # ordinal treatment is more appropriate for tree splits.
-    # categorical_cols = ["buying", "maint", "doors", "persons", "lug_boot", "safety"]
-    feature_types = build_feature_types(df, categorical_cols=[], target_col=target_col)
+    categorical_cols = ["buying", "maint", "doors", "persons", "lug_boot", "safety"]
+    feature_types = build_feature_types(df, categorical_cols=categorical_cols, target_col=target_col)
     return df, feature_types
 
 
