@@ -39,35 +39,70 @@ decision trees, gain ratio, regression trees, reduced error pruning, 5x2 cross-v
 \section{Problem Statement and Hypothesis}
 The goal of this project is to implement and analyze decision trees for classification and regression. A tree grown to completion keeps splitting until its leaves are pure, which allows it to fit noise in the training data. Post-pruning addresses this by removing subtrees that do not help on data not used for training. We implement univariate decision trees using gain ration for classification and mean squared error (MSE) for regression, and compare fully grown trees to trees simplified with reduced error pruning (REP) on six UCI datasets.
 
-We test the following hypotheses using the $5 \times 2$ cv paired $t$ test \citep{dietterich1998, alpaydin2020} at $\alpha = 0.05$, ...
+We test the following hypotheses using $5 \times 2$ cross validation ...
 \begin{enumerate}
-    \item \textbf{H1:} Reduced error pruning produces significantly smaller trees than fully grown trees on every dataset.
+    \item \textbf{H1:} Reduced error pruning produces 50\% smaller trees than fully grown trees on every dataset.
     \item \textbf{H2:} Pruned trees achieve lower mean test error than unpruned trees on a majority (at least four) of the six datasets.
-    \item \textbf{H3:} (MAYBE KEEP?) The relative error reduction from pruning is larger on the regression datasets than on the classification datasets.
 \end{enumerate}
-
+H1 is falsified if any dataset shows a smaller reduction, and H2 is falsified if the pruned tree has the lower mean error on three or fewer datasets.
 
 
 \section{Experimental Approach and Project Design}
-Our experimental pipeline consisted of data acquisition, preprocessing, model tuning, and statistical evaluation. (CHANGE TODO)
+Our experimental pipeline consisted of data acquisition, preprocessing, tree construction, pruning, and evaluation.
 
-\subsection{Datasets and Preprocessing (UPDATE AND EXPAND AS PER FEEDBACK)}
-We utilize six datasets from the UCI repository. To ensure that the distance metrics are meaningful, we apply the following preprocessing: 
+\subsection{Datasets}
+We utilize six datasets from the UCI repository \citep{dua2019}. Three are classification tasks and three are regression tasks.
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{llcccc}
+    \hline
+    Dataset & Task & Instances & Features (num./cat.) \\
+    \hline
+    Breast Cancer     & Classification & 699  & 9 (9/0) \\
+    Car Evaluation    & Classification & 1728 & 6 (0/6) \\
+    House Votes       & Classification & 435  & 16 (0/16) \\
+    Abalone           & Regression     & 4177 & 8 (7/1) \\
+    Computer Hardware & Regression     & 209  & 6 (6/0) \\
+    Forest Fires      & Regression     & 517  & 12 (10/2) \\
+    \hline
+    \end{tabular}
+    \caption{Summary of the six datasets used in this assignment.}
+    \label{tab:datasets}
+\end{table}
+
+\subsection{Preprocessing}
+Decision trees choose splits by comparing a feature against a threshold or by branching on its distinct values, which has several consequences for preprocessing. A rescaling of a numeric feature does not change which splits are possible, so we apply no normalization. Categorical features are split natively with one branch per distinct value, so we do not use one-hot encoding or cyclic encoding. Numeric features receive binary splits and categorical features (nominal or ordinal) receive one branch per value. We store a record of which features are numeric and which are categorical as a map from feature name to type alongside each processed dataset. The dataset-specific steps are as follows.
 \begin{itemize}
-    \item  \textbf{Normalization:} Numeric features are scaled using either Z-score or Min-Max normalization to prevent features with larger magnitudes from dominating the distance calculation. 
-    \item \textbf{Categorical Encoding:} Nominal features are handled with one-hot encoding. For specific cyclic features (e.g., month and day in the Forest Fires dataset), we implement a sine/cosine encoding to preserve the shape and relationship of temporal data.
-    \item \textbf{Target Transformation:} For skewed regression targets, such as the burned area in the Forest Fires dataset, a $\ln(x+1)$ transformation is applied. 
+    \item \textbf{Unique identifiers:} A feature that is different for every instance would isolate each training example in its own branch, which cannot generalize to unseen data. We therefore remove the sample code number from Breast Cancer and the model name from Computer Hardware.
+    \item \textbf{Breast Cancer:} The bare nuclei feature has 16 missing values, marked with ``?''. We replace each with the most common value of that feature rather than dropping the rows, so that all 699 instances are kept. The nine features are integer scores from 1 to 10, and we treat them as numeric.
+    \item \textbf{Car Evaluation:} All six attributes (buying price, maintenance cost, doors, persons, luggage boot size, and safety) are ordinal. We treat them as categorical and split on every distinct value.
+    \item \textbf{Congressional Voting:} In this dataset a ``?'' does not mean the value is unknown; it means the representative did not vote yea or nay. We therefore keep it as a third category for each of the sixteen features.
+    \item \textbf{Abalone:} The sex feature (male, female, infant) is categorical, and the remaining seven measurements are numeric.
+    \item \textbf{Computer Hardware:} In addition to the model name, we remove the vendor name, which has many distinct values that each cover only a few instances, so a multiway split on it would fragment the data. We also remove the estimated relative performance (ERP) column as it is the dataset authors' own linear regression estimate of the target, so using it as a feature would give the tree another model's prediction of the answer. The six remaining hardware attributes are numeric.
+    \item \textbf{Forest Fires:} Month and day are categorical, and we do not apply a cyclic encoding. The spatial coordinates and the weather and fire-index measurements are numeric. The burned area is heavily right-skewed, so we apply the transformation $\ln(x+1)$ to it before training. All reported Forest Fires errors are therefore on the log scale.
 \end{itemize}
 
-\subsection{Evaluation Protocol (UPDATE)}
-To ensure statistical robustness, we employ a $5 \times 2$ cross-validation framework. The data is split into two halves; we train on half and test on the other, then reverse the roles. This process is repeated five times with different random splits.
-\begin{itemize}
-    \item \textbf{Classification Metric:} Performance is measured using the Classification Error rate.
-    \item \textbf{Regression Metric:} Performance is measured using Mean Squared Error (MSE).
-\end{itemize}
+\subsection{Evaluation Protocol}
+To obtain a fair comparison between fully grown and pruned trees, we separate the data into three roles: training, pruning, and testing. First, 20\% of each dataset is drawn at random and held out as the pruning set. This set is never used to train a tree or to report test performance. The remaining 80\% is used for $5 \times 2$ cross validation. In each of five repetitions, we shuffle this 80\% and split it into two equal folds. We then train on the first fold and test on the second, and then reverse the roles, which produces ten train/test pairs per dataset.
 
-\subsection{Statistic Testing? (5x2 t test from textbook) (Mentioned in project requirements)}
-"Run your decision tree implementation on each of the data sets, comparing both pruned and unpruned versions of the trees. These runs should be done with 5 × 2 cross-validation so you can compare your results statistically."
+For each of the ten train/test pairs, we proceed as follows:
+\begin{enumerate}
+    \item Grow a tree to completion on the training fold and record its error on the test fold, along with its number of nodes. This is the unpruned result.
+    \item Make a copy of the tree and apply reduced error pruning using the pruning set.
+    \item Record the pruned tree's error on the same test fold, along with its number of nodes. This is the pruned result.
+\end{enumerate}
+Because the pruned and unpruned trees are evaluated on identical folds, their results are directly paired. The pruning set is drawn once per run and shared across all repetitions.
+
+For classification we report the classification error, the fraction of test instances predicted incorrectly:
+\begin{equation}
+    \text{Classification Error} = \frac{1}{N}\sum_{t=1}^{N} \mathbf{1}\left[\hat{y}^t \neq y^t\right],
+\end{equation}
+and for regression we report the mean squared error,
+\begin{equation}
+    \text{MSE} = \frac{1}{N}\sum_{t=1}^{N} \left(y^t - \hat{y}^t\right)^2,
+\end{equation}
+where $N$ is the number of test instances. Tree size is the total number of nodes, internal and leaf. We report the mean quantity over the ten folds. To evaluate H1, we compute the reduction in tree size as $1 - \bar{s}_{\text{pruned}} / \bar{s}_{\text{unpruned}}$, where $\bar{s}$ is the mean node count over the ten folds. To evaluate H2, we compare the mean test error of the pruned and unpruned trees on each dataset and count the datasets on which the pruned trees have the lower mean.
 
 \section{Algorithms Implemented (UPDATE)}
 This section describes the algorithms implemented for this project. We begin with the null model, which serves as a naive baseline against which all other methods are compared. We then describe the k-nearest neighbor classifier and regressor, including how distances are computed and how predictions are formed from a query point's neighbors. Finally, we present the edited and condensed KNN algorithms used to reduce the training set, along with the hyperparameter tuning approach used to select $k$, $\gamma$, and $\epsilon$ for all methods.
@@ -89,20 +124,85 @@ TODO
 TODO
 
 
-\section{Experimental Results (UPDATE)}
-We evaluate the null model, k-nearest neighbor, Edited KNN, and Condensed KNN using 5$\times$2 cross-validation on each of the six datasets, reporting classification error for the three classification datasets and mean squared error (MSE) for the three regression datasets. Hyperparameters were tuned via random search as described in Section 3.6. $k$ was searched with 100 iterations for classification, a budget chosen because $k$ is restricted to a small number of discrete odd values, so additional iterations beyond this point yield diminishing returns. $k$ and $\gamma$ were searched jointly with 250 iterations for regression, which reflects the added difficulty of the joint search. Since $\gamma$ is continuous and spans several orders of magnitude, we require more samples to adequately cover the space. $\epsilon$ was searched with just 75 iterations for editing and condensing on regression tasks due to a substantially more expensive tuning algorithm. Every iteration of $\epsilon$ rebuilds the reduced training set from scratch, which is reflected in $\epsilon$ having fewer iterations. We confirmed after tuning that the selected hyperparameter values did not consistently fall near the boundaries of their respective search ranges. This indicates that the chosen iteration counts and ranges provided adequate coverage of the search space.
+\section{Experimental Results}
+We evaluate fully grown and reduced error pruned decision trees using $5 \times 2$ cross validation on each of the six datasets, as described in Section 2.3. We report classification error for the three classification datasets and mean squared error (MSE) for the three regression datasets, along with the number of nodes in each tree. Every value is the mean over the ten test folds, and values after the $\pm$ sign are standard deviations over those folds. Both trees are tested on the same folds, so the pruned and unpruned results are paired.
 
 \subsection{Classification}
-TODO
+Table~\ref{tab:classification-results} reports classification error for the unpruned and pruned trees on the three classification datasets, and Figure~\ref{fig:error} (left) shows the same comparison.
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{lccc}
+    \hline
+    Dataset & Unpruned & Pruned & Folds improved by pruning \\
+    \hline
+    Breast Cancer   & 0.0505 $\pm$ 0.0128 & 0.0426 $\pm$ 0.0087 & 6/10 \\
+    Car Evaluation  & 0.0971 $\pm$ 0.0135 & 0.1247 $\pm$ 0.0137 & 0/10 \\
+    House Votes     & 0.0747 $\pm$ 0.0244 & 0.0500 $\pm$ 0.0151 & 4/10 \\
+    \hline
+    \end{tabular}
+    \caption{Classification error ($5 \times 2$ CV mean $\pm$ standard deviation) for the unpruned and pruned trees. The last column gives the number of the ten folds on which the pruned tree had a strictly lower error than the unpruned tree.}
+    \label{tab:classification-results}
+\end{table}
+
+Pruning lowers the mean error on Breast Cancer and House Votes, by 15.6\% and 33.1\% respectively. On Car Evaluation, pruning raises the error by 28.5\%, and the pruned tree is worse on every one of the ten folds. On Breast Cancer and House Votes the improvement is not uniform across folds. The pruned tree is strictly better on six folds for Breast Cancer, and on only four folds for House Votes, where five of the ten folds are ties and the pruned tree is worse on one.
 
 \subsection{Regression}
-TODO
+Table~\ref{tab:regression-results} reports mean squared error for the unpruned and pruned trees on the three regression datasets, and Figure~\ref{fig:error} (right) shows the same comparison on a logarithmic scale. Forest Fires errors are on the log scale of the transformed target described in Section 2.2.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lccc}
+\hline
+Dataset & Unpruned & Pruned & Folds improved by pruning \\
+\hline
+Abalone            & 9.1133 $\pm$ 0.6394      & 6.1419 $\pm$ 0.4673      & 10/10 \\
+Computer Hardware  & 9752.79 $\pm$ 5083.87    & 9333.13 $\pm$ 6388.32    & 9/10 \\
+Forest Fires       & 4.1381 $\pm$ 0.4695      & 2.2138 $\pm$ 0.3540      & 10/10 \\
+\hline
+\end{tabular}
+\caption{Mean squared error ($5 \times 2$ CV mean $\pm$ standard deviation) for the unpruned and pruned trees. The last column gives the number of the ten folds on which the pruned tree had a lower error than the unpruned tree.}
+\label{tab:regression-results}
+\end{table}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{figures/fig_error.pdf}
+    \caption{Test error for unpruned and pruned trees on the classification datasets (left) and regression datasets (right). Bars show the mean over the ten folds and error bars show one standard deviation. The regression axis is logarithmic because the datasets differ in scale by several orders of magnitude.}
+    \label{fig:error}
+\end{figure}
+
+Pruning lowers the mean MSE on all three regression datasets. The reductions are 32.6\% for Abalone and 46.5\% for Forest Fires, and in both cases the pruned tree is better on all ten folds. The reduction for Computer Hardware is only 4.3\%. Its fold-to-fold standard deviation is larger than the difference between the two means, and it is the only regression dataset on which the standard deviation grows with pruning.
 
 \subsection{Tree Size}
-TODO
+Table~\ref{tab:size-results} reports the mean number of nodes in the unpruned and pruned trees, and Figure~\ref{fig:size} shows the same comparison on a logarithmic scale.
 
-\subsection{Hypothesis Summary?}
-Table with one row per hypothesis, showing supported or not supported and the evidence. (Could also just do discussion)
+\begin{table}[h]
+    \centering
+    \begin{tabular}{lccc}
+    \hline
+    Dataset & Unpruned Nodes & Pruned Nodes & Reduction \\
+    \hline
+    Breast Cancer      & 31.4 $\pm$ 3.9    & 13.6 $\pm$ 6.1   & 56.7\% \\
+    Car Evaluation     & 212.2 $\pm$ 11.0  & 103.2 $\pm$ 10.1 & 51.4\% \\
+    House Votes        & 27.5 $\pm$ 5.2    & 6.1 $\pm$ 2.6    & 77.8\% \\
+    Abalone            & 2002.8 $\pm$ 22.3 & 315.3 $\pm$ 51.0 & 84.3\% \\
+    Computer Hardware  & 153.4 $\pm$ 3.9   & 42.4 $\pm$ 15.4  & 72.4\% \\
+    Forest Fires       & 262.0 $\pm$ 8.5   & 21.6 $\pm$ 20.7  & 91.8\% \\
+    \hline
+    \end{tabular}
+    \caption{Mean number of nodes ($5 \times 2$ CV mean $\pm$ standard deviation) in the unpruned and pruned trees. The reduction is computed from the two means.}
+    \label{tab:size-results}
+\end{table}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.75\linewidth]{figures/fig_size.pdf}
+    \caption{Number of nodes in unpruned and pruned trees on each dataset. Bars show the mean over the ten folds, error bars show one standard deviation, and the axis is logarithmic.}
+    \label{fig:size}
+\end{figure}
+
+Pruning shrinks the tree on every dataset, with reductions ranging from 51.4\% for Car Evaluation to 91.8\% for Forest Fires. Of the classification datasets, House Votes is reduced the most, with a 77.8\% reduction and Car Evaluation is reduced the least and has the smallest margin over the 50\% threshold in H1. Of the regression datasets, Forest Fires is reduced the most, with a 91.8\% reduction and Computer Hardware is reduced the least. The regression trees also show the largest reductions and the largest unpruned trees. 
 
 \section{Analysis and Discussion}
 TODO
