@@ -29,17 +29,18 @@ Bozeman, MT, USA
 \maketitle
 
 \begin{abstract}
-TODO
+This paper evaluates the performance of univariate decision trees for both classification and regression tasks across six diverse datasets from the UCI Machine Learning Repository. We implement two distinct splitting criteria: Gain Ratio for classification to mitigate bias toward features with a large number of unique values, and Mean Squared Error (MSE) for regression to minimize variance within partitions. To address the tendency of fully grown trees to overfit training data, particularly in regression tasks with continuous targets, we employ Reduced Error Pruning (REP) using a dedicated 20\% hold-out pruning set. The models are evaluated using a $5 \times 2$ cross validation protocol to ensure statistical robustness. Our results demonstrate that while fully grown trees achieve near-perfect training accuracy, reduced error pruning simplifies model complexity (reducing node counts by over 50\% in most cases) while often improving or maintaining generalization performance on unseen test data. We specifically analyze the trade-offs between model size and error rates, finding that pruning is most effective on datasets with high noise or continuous targets.
+
 \end{abstract}
 
 \begin{keywords}
-decision trees, gain ratio, regression trees, reduced error pruning, 5x2 cross-validation
+decision trees, gain ratio, regression trees, reduced error pruning, $5 \times 2$ cross validation
 \end{keywords}
 
-\section{Problem Statement and Hypothesis}
-The goal of this project is to implement and analyze decision trees for classification and regression. A tree grown to completion keeps splitting until its leaves are pure, which allows it to fit noise in the training data. Post-pruning addresses this by removing subtrees that do not help on data not used for training. We implement univariate decision trees using gain ration for classification and mean squared error (MSE) for regression, and compare fully grown trees to trees simplified with reduced error pruning (REP) on six UCI datasets.
+\section{Problem Statement and Hypotheses}
+The goal of this project is to implement and analyze decision trees for classification and regression. A tree grown to completion keeps splitting until its leaves are pure, which allows it to fit noise in the training data. Post-pruning addresses this by removing subtrees that do not help on data not used for training. We implement univariate decision trees using gain ratio for classification and mean squared error (MSE) for regression, and compare fully grown trees to trees simplified with reduced error pruning (REP) on six UCI datasets.
 
-We test the following hypotheses using $5 \times 2$ cross validation ...
+We test the following hypotheses using $5 \times 2$ cross validation \citep{alpaydin2020}:
 \begin{enumerate}
     \item \textbf{H1:} Reduced error pruning produces 50\% smaller trees than fully grown trees on every dataset.
     \item \textbf{H2:} Pruned trees achieve lower mean test error than unpruned trees on a majority (at least four) of the six datasets.
@@ -51,11 +52,11 @@ H1 is falsified if any dataset shows a smaller reduction, and H2 is falsified if
 Our experimental pipeline consisted of data acquisition, preprocessing, tree construction, pruning, and evaluation.
 
 \subsection{Datasets}
-We utilize six datasets from the UCI repository \citep{dua2019}. Three are classification tasks and three are regression tasks.
+We utilize six datasets from the UCI repository \citep{uci_repository}. Three are classification tasks and three are regression tasks. Table~\ref{tab:datasets} summarizes the datasets.
 
 \begin{table}[h]
     \centering
-    \begin{tabular}{llcccc}
+    \begin{tabular}{llcc}
     \hline
     Dataset & Task & Instances & Features (num./cat.) \\
     \hline
@@ -77,14 +78,14 @@ Decision trees choose splits by comparing a feature against a threshold or by br
     \item \textbf{Unique identifiers:} A feature that is different for every instance would isolate each training example in its own branch, which cannot generalize to unseen data. We therefore remove the sample code number from Breast Cancer and the model name from Computer Hardware.
     \item \textbf{Breast Cancer:} The bare nuclei feature has 16 missing values, marked with ``?''. We replace each with the most common value of that feature rather than dropping the rows, so that all 699 instances are kept. The nine features are integer scores from 1 to 10, and we treat them as numeric.
     \item \textbf{Car Evaluation:} All six attributes (buying price, maintenance cost, doors, persons, luggage boot size, and safety) are ordinal. We treat them as categorical and split on every distinct value.
-    \item \textbf{Congressional Voting:} In this dataset a ``?'' does not mean the value is unknown; it means the representative did not vote yea or nay. We therefore keep it as a third category for each of the sixteen features.
+    \item \textbf{House Votes:} In this dataset a ``?'' does not mean the value is unknown; it means the representative did not vote yea or nay. We therefore keep it as a third category for each of the sixteen features.
     \item \textbf{Abalone:} The sex feature (male, female, infant) is categorical, and the remaining seven measurements are numeric.
-    \item \textbf{Computer Hardware:} In addition to the model name, we remove the vendor name, which has many distinct values that each cover only a few instances, so a multiway split on it would fragment the data. We also remove the estimated relative performance (ERP) column as it is the dataset authors' own linear regression estimate of the target, so using it as a feature would give the tree another model's prediction of the answer. The six remaining hardware attributes are numeric.
+    \item \textbf{Computer Hardware:} In addition to the model name, we remove the vendor name, which has many distinct values that each cover only a few instances, so a multi-way split on it would fragment the data. We also remove the estimated relative performance (ERP) column as it is the dataset authors' own linear regression estimate of the target, so using it as a feature would give the tree another model's prediction of the answer. The six remaining hardware attributes are numeric.
     \item \textbf{Forest Fires:} Month and day are categorical, and we do not apply a cyclic encoding. The spatial coordinates and the weather and fire-index measurements are numeric. The burned area is heavily right-skewed, so we apply the transformation $\ln(x+1)$ to it before training. All reported Forest Fires errors are therefore on the log scale.
 \end{itemize}
 
 \subsection{Evaluation Protocol}
-To obtain a fair comparison between fully grown and pruned trees, we separate the data into three roles: training, pruning, and testing. First, 20\% of each dataset is drawn at random and held out as the pruning set. This set is never used to train a tree or to report test performance. The remaining 80\% is used for $5 \times 2$ cross validation. In each of five repetitions, we shuffle this 80\% and split it into two equal folds. We then train on the first fold and test on the second, and then reverse the roles, which produces ten train/test pairs per dataset.
+To obtain a fair comparison between fully grown and pruned trees, we separate the data into three roles: training, pruning, and testing. First, 20\% of each dataset is drawn at random and held out as the pruning set. This set is never used to train a tree or to report test performance. The remaining 80\% is used for $5 \times 2$ cross validation. In each of five repetitions, we shuffle this 80\% and split it into two equal folds. We train on the first fold, test on the second, and then reverse the roles, which produces ten train/test pairs per dataset.
 
 For each of the ten train/test pairs, we proceed as follows:
 \begin{enumerate}
@@ -96,32 +97,45 @@ Because the pruned and unpruned trees are evaluated on identical folds, their re
 
 For classification we report the classification error, the fraction of test instances predicted incorrectly:
 \begin{equation}
-    \text{Classification Error} = \frac{1}{N}\sum_{t=1}^{N} \mathbf{1}\left[\hat{y}^t \neq y^t\right],
+    \text{Classification Error} = \frac{1}{N}\sum_{t=1}^{N} \mathbf{1}\left[\hat{r}^t \neq r^t\right],
 \end{equation}
 and for regression we report the mean squared error,
 \begin{equation}
-    \text{MSE} = \frac{1}{N}\sum_{t=1}^{N} \left(y^t - \hat{y}^t\right)^2,
+    \text{MSE} = \frac{1}{N}\sum_{t=1}^{N} \left(r^t - \hat{r}^t\right)^2,
 \end{equation}
-where $N$ is the number of test instances. Tree size is the total number of nodes, internal and leaf. We report the mean quantity over the ten folds. To evaluate H1, we compute the reduction in tree size as $1 - \bar{s}_{\text{pruned}} / \bar{s}_{\text{unpruned}}$, where $\bar{s}$ is the mean node count over the ten folds. To evaluate H2, we compare the mean test error of the pruned and unpruned trees on each dataset and count the datasets on which the pruned trees have the lower mean.
+where $N$ is the number of test instances. Tree size is the total number of nodes, internal and leaf. We report the mean and standard deviation over the ten folds. To evaluate H1, we compute the reduction in tree size as $1 - \bar{s}_{\text{pruned}} / \bar{s}_{\text{unpruned}}$, where $\bar{s}$ is the mean node count over the ten folds. To evaluate H2, we compare the mean test error of the pruned and unpruned trees on each dataset and count the datasets on which the pruned trees have the lower mean.
 
-\section{Algorithms Implemented (UPDATE)}
-This section describes the algorithms implemented for this project. We begin with the null model, which serves as a naive baseline against which all other methods are compared. We then describe the k-nearest neighbor classifier and regressor, including how distances are computed and how predictions are formed from a query point's neighbors. Finally, we present the edited and condensed KNN algorithms used to reduce the training set, along with the hyperparameter tuning approach used to select $k$, $\gamma$, and $\epsilon$ for all methods.
-
+\section{Algorithms Implemented}
+This section describes the implementation of the univariate (axis-parallel) decision tree algorithm for both classification and regression tasks. Our implementation is designed to handle mixed data types natively; numeric features are processed using binary splits, while categorical (nominal and ordinal) features are processed using multi-way splits where the number of branches is determined by the number of discrete values present within the feature.
 
 \subsection{Tree Representation and Growth}
-TODO
+We implement the decision tree as a recursive data structure. Each internal node stores a splitting feature and the associated threshold (for numeric data) or category set (for categorical data) used to route instances. Each leaf node stores the final prediction based on the training instances that reached that node. Following the project requirements, trees are grown to completion—meaning they are expanded recursively until every leaf is pure or no further splits can be found that improve the specific splitting criterion.
 
 \subsection{Classification Splitting: Gain Ratio}
-TODO
+For classification trees, we employ the Gain Ratio \citep{quinlan1993} as the splitting criterion. This is preferred over standard Information Gain because it mitigates the bias toward features with a high number of distinct values, which can artificially lower entropy without providing true predictive power. 
+
+To compute the Gain Ratio, we first determine the entropy of a partition $D_\pi$ as:
+\begin{equation}
+H(D_\pi) = -\sum_{\ell=1}^{C} \frac{c_{\pi,\ell}}{|D_\pi|} \log_2 \left( \frac{c_{\pi,\ell}}{|D_\pi|} \right)
+\end{equation}
+where $c_{\pi,\ell}$ denotes the number of examples in partition $\pi$ belonging to class $\ell$, and $|D_\pi|$ is the total number of examples in that partition. The Gain Ratio for a feature $f_i$ is then calculated by dividing the Information Gain by the Split Information:
+\begin{equation}
+\text{Gain Ratio}(S, f_i) = \frac{\text{Information Gain}(S, f_i)}{\text{Split Info}(S, f_i)}
+\end{equation}
+The Split Info represents the entropy of the feature itself, effectively normalizing the gain based on the number of branches $m_i$ created by the split. We select the feature $f_i$ that maximizes this ratio to define the partitions $D_\pi$.
 
 \subsection{Regression Splitting: Mean Squared Error}
-TODO
+For regression trees, the splitting objective is to minimize the variance of the target values within the resulting nodes. We implement this by choosing the split that minimizes the Mean Squared Error (MSE). The MSE for a given split is calculated as:
+\begin{equation}
+\text{MSE} = \frac{1}{N} \sum_{t=1}^{N} (r_t - \hat{r}_{t,\pi_j})^2
+\end{equation}
+In this equation, $r_t$ represents the ground truth response value for instance $x_t$, and $\hat{r}_{t,\pi_j}$ is the predicted response value—calculated as the mean of all response values—for the partition $\pi$ that instance $x_t$ falls into after following branch $j$. By minimizing this sum, the tree ensures that the instances within each leaf are as similar as possible to the leaf's mean prediction.
 
 \subsection{Prediction}
-TODO
+Prediction is performed by traversing the tree from the root based on the instance's feature values until a leaf is reached. For classification, the leaf predicts the most frequent class in that partition. For regression, the leaf predicts the mean of the response values of the training instances that fell into that partition.  
 
 \subsection{Reduced Error Pruning}
-TODO
+We implement reduced error pruning (REP) \citep{quinlan1987} as a post-pruning technique. Starting from the leaves and moving upward, we evaluate whether replacing a sub tree with a single leaf (using the majority class for classification and the mean for regression) does not increase the error on a separate 20\% pruning set. If the pruning does not increase the error on the pruning set, then that sub tree is removed. 
 
 
 \section{Experimental Results}
@@ -202,27 +216,51 @@ Table~\ref{tab:size-results} reports the mean number of nodes in the unpruned an
     \label{fig:size}
 \end{figure}
 
-Pruning shrinks the tree on every dataset, with reductions ranging from 51.4\% for Car Evaluation to 91.8\% for Forest Fires. Of the classification datasets, House Votes is reduced the most, with a 77.8\% reduction and Car Evaluation is reduced the least and has the smallest margin over the 50\% threshold in H1. Of the regression datasets, Forest Fires is reduced the most, with a 91.8\% reduction and Computer Hardware is reduced the least. The regression trees also show the largest reductions and the largest unpruned trees. 
+Pruning shrinks the tree on every dataset, with reductions ranging from 51.4\% for Car Evaluation to 91.8\% for Forest Fires. Of the classification datasets, House Votes is reduced the most (77.8\%), and Car Evaluation the least, which gives the smallest margin over the 50\% threshold in H1. Of the regression datasets, Forest Fires is reduced the most, with a 91.8\% reduction, and Computer Hardware is reduced the least. The two largest reductions and the two largest unpruned trees are both on regression datasets (Forest Fires and Abalone).
 
 \section{Analysis and Discussion}
-TODO
+This section interprets the results in Section 4. We first examine how pruning changed tree size and test error, and then discuss how our preprocessing decisions and the two splitting criteria shaped those outcomes. We end with the limitations of the experiment.
 
+\subsection{Hypotheses}
+Pruning removed between 51.4\% and 91.8\% of the nodes, so H1 held on all six datasets (Table~\ref{tab:size-results}). The margin on Car Evaluation is small, so a different random pruning set could push that dataset below the 50\% threshold, and we treat H1 on that dataset as borderline. H2 also held, since the pruned tree had the lower mean test error on five of the six datasets (Tables~\ref{tab:classification-results} and~\ref{tab:regression-results}). Car Evaluation is the only exception, and it is the exception in a strong sense because the pruned tree performed worse than the unpruned on all ten folds.
+
+\subsection{Why Pruning Shrank the Regression Trees So Much}
+The largest reductions occurred on the regression datasets (72.4\% to 91.8\%), and the classification datasets were reduced less (51.4\% to 77.8\%), although House Votes falls between Computer Hardware and Abalone. This follows from how each kind of tree stops growing. A classification tree stops at a node as soon as all of its instances share a class. A regression tree stops only when every target value in the node is identical, which for a continuous target usually happens only when a node holds a single training instance. The unpruned Abalone tree, with about 2,000 nodes for roughly 1,670 training instances, illustrates this. Reduced error pruning then removes structure that exists only to fit individual targets, which is more common in the regression trees and explains their larger reductions.
+
+\subsection{Pruning Across Datasets}
+On House Votes, the pruned tree has only about 6 nodes compared with 27.5 unpruned, which suggests that a few votes carry most of the signal. On Abalone and Forest Fires, the features appear to leave much of the target unexplained, so a fully grown tree fits variation that does not generalize. The Forest Fires results illustrate this. The transformed target has a standard deviation of 1.40, so predicting the mean gives an MSE of 1.96. The unpruned tree's MSE of 4.14 is more than twice that, and the pruned tree's MSE of 2.21 is still slightly above it.
+
+Car Evaluation behaves differently. Its labels come from a deterministic rule, so there is little to no noise to memorize and every branch encodes real structure. We believe pruning increases classification error because the 346-instance pruning set contains only about 14 and 13 instances of the two rarest classes. This causes the branches encoding those classes to look unnecessary on the pruning set even though the test folds need them. We did not measure per-class error, so this is a likely explanation rather than a confirmed one.
+
+The improvements on Breast Cancer and Computer Hardware are less clear. On Breast Cancer the pruned tree performed better on only six folds, and the standard deviations overlap. On Computer Hardware the mean MSE fell by only 4.3\%, less than the pruned tree's standard deviation, and with a pruning set of 42 instances, its pruning decisions are the least reliable. We therefore regard these two improvements as suggestive rather than established.
+
+\subsection{The Role of Preprocessing}
+Because trees compare a feature against a threshold or branch on its values, rescaling a numeric feature does not affect which splits are possible, so we applied no normalization. However, for the target, splitting on MSE is sensitive to its scale, so we transformed the Forest Fires burned area with $\ln(x+1)$. Without it, we expect the few very large fires to dominate the MSE and attract the tree's splits. The transformation also means that Forest Fires errors are on the log scale. Removing identifier features prevented splits that isolate individual instances, which fit the training fold perfectly and contribute nothing on the test fold. We also removed the estimated relative performance column from Computer Hardware, since it is the dataset authors' own linear regression prediction.
+
+Our feature type decisions affect tree structure directly. We treat Breast Cancer's integer scores as numeric values, so every candidate split there is a binary threshold. Its missing values were also replaced with the most common value, which is unlikely to change the results much but slightly biases that feature toward its mode. Keeping the ``?'' in House Votes as its own category preserves the distinction between abstaining and voting.
+
+\subsection{The Role of the Splitting Criteria}
+The splitting criterion decides which feature is used at each node. For classification, information gain alone favors features with many distinct values, since splitting into many small subsets almost always lowers entropy. Gain ratio corrects for this by dividing by the split information, which grows with the number of branches. This matters for our categorical splits in datasets like Car Evaluation and House Votes. For numeric features, every candidate threshold has only two branches, so the correction has less effect.
+
+The regression criterion is the mean squared error after the split, weighted by branch size. Because MSE weights large deviations heavily, the tree is pulled toward isolating extreme target values, which is one reason the fully grown regression trees are so large. This criterion also has no term that penalizes many small branches, so multi-way splits on categorical features (like month in Forest Fires) tend to lower training MSE.
 
 \section{Conclusion}
-TODO
+In this project, we implemented and analyzed the impact of reduced error pruning on decision trees for classification and regression. Our experimental results provide strong evidence for our first hypothesis (H1), as pruned trees were consistently smaller than their fully grown counterparts across all six datasets, exceeding the 50\% reduction threshold. Our second hypothesis (H2) was also supported, with pruned trees achieving lower mean test error on a majority of the datasets.
+
+A key finding was the disparity in pruning impact between task types: regression trees exhibited more drastic reductions in size, as the initial fully grown trees tended to isolate individual training instances to minimize MSE. In contrast, classification trees were more stable, though pruning still effectively removed branches that captured noise rather than signal. The exception of the Car Evaluation dataset suggests that when data is governed by deterministic rules and noise is minimal, pruning may inadvertently remove necessary structural logic. Overall, this study supports the view that pruning can improve generalization on most datasets, transforming overfit, complex models into efficient, interpretable predictors.
 
 \bibliography{references}
 
 \newpage
 
 \appendix
-\section{Main Lessons Learned (UPDATE)}
-Through the implementation of this project, we learned the critical importance of feature scaling; without normalization, the Minkowski distance is skewed toward features with larger magnitudes. We also observed that the choice of $k$ and $\gamma$ can lead to significant overfitting or underfitting, reinforcing the need for a robust tuning pipeline like random search. Finally, we learned that "data reduction" is not a one-size-fits-all process. Removing noise (Editing) and removing redundancy (Condensing) serve different purposes and yield different results depending on the dataset.
+\section{Main Lessons Learned}
+Implementing univariate decision trees helped highlight the difference between classification and regression growth. We found that regression trees are far more prone to overfitting, often growing until they isolate individual training instances to minimize MSE. This demonstrated the necessity of reduced error pruning to ensure generalization. Additionally, using the Gain Ratio showed how normalizing for feature cardinality prevents bias toward categorical features with many unique values. Finally, the use of a separate 20\% pruning set and a $5 \times 2$ cross validation protocol taught us the importance of strict data separation and statistical robustness to avoid data leakage and unreliable performance metrics.
 
-\section{Delineation of Work (UPDATE)}
+\section{Delineation of Work}
 \begin{itemize}
-    \item \textbf{Isaac Wilkey:} For the report, I wrote the Problem Statement and Hypothesis, the Experimental Approach and Project Design, and the Conclusion. I also contributed to the Algorithms Implemented section. Additionally, I implemented the core code for the Edited KNN and Condensed KNN data reduction algorithms.
-    \item \textbf{Riley Smith:} For the report, I wrote the majority of the Algorithms Implemented section (Section 3), as well as the Experimental Results section (Section 4). For the programming side, I wrote the preprocessing, null, unreduced KNN, evaluation, and tuning algorithms. I also compiled the final results.
+    \item \textbf{Isaac Wilkey:} Responsible for the implementation of the core machine learning algorithms, specifically developing the decision tree growth logic using Gain Ratio for classification and Mean Squared Error for regression, as well as the reduced error pruning system. Additionally, I authored the Abstract, the Algorithms Implemented section, and the Conclusion of the final report.
+    \item \textbf{Riley Smith:} Responsible for the implementation of the preprocessing and evaluation algorithms. In the report, I authored the Problem Statement and Hypothesis, Experimental Approach and Project Design, Experimental Results, and Analysis and Discussion sections. 
 \end{itemize}
 
 \end{document}
