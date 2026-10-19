@@ -1,0 +1,96 @@
+\documentclass[twoside,11pt]{article}
+\usepackage{multirow}
+\usepackage{jmlr2e}
+\usepackage{lastpage}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{appendix}
+\usepackage{graphicx}
+
+\graphicspath{{figures/}{../results/figures/}}
+
+% jmlrheading{volume}{year}{pages}{date submitted}{date published}{paper id}{authors}
+\jmlrheading{26}{2026}{1-\pageref{LastPage}}{11/9/26}{11/9/26}{25-0050}{Isaac Wilkey and Riley Smith}
+\ShortHeadings{Backpropagation and Autoencoder Feature Extraction}{Wilkey and Smith}
+\firstpageno{1}
+
+\begin{document}
+
+\title{Logistic Regression, Backpropagation Networks, and Autoencoder Pre-training}
+
+\author{\name Isaac Wilkey \email isaac.wilkey@student.montana.edu\\
+\addr Department of Computer Science \\
+Montana State University \\
+Bozeman, MT, USA
+\AND
+\name Riley Smith \email riley.smith13@student.montana.edu\\
+\addr Department of Computer Science \\
+Montana State University \\
+Bozeman, MT, USA
+}
+\editor{Isaac Wilkey \& Riley Smith}
+
+\maketitle
+
+\begin{abstract}
+TODO: Summarize the problem, the three network types compared (linear, two-hidden-layer feedforward, autoencoder-based), the data sets, the $5 \times 2$ cross-validation protocol, and the main findings.
+\end{abstract}
+
+\begin{keywords}
+backpropagation, autoencoder, logistic regression, feature extraction, $5 \times 2$ cross validation
+\end{keywords}
+
+\section{Problem Statement and Hypotheses}
+TODO: State the goal of the project and at least one testable hypothesis, including what result would falsify it.
+\begin{enumerate}
+    \item \textbf{H1:} TODO
+    \item \textbf{H2:} TODO
+\end{enumerate}
+
+\section{Experimental Approach and Project Design}
+\subsection{Datasets}
+TODO: Table of the four chosen data sets (two classification, two regression) with instances, features, and task.
+
+\subsection{Preprocessing}
+TODO: Missing values, one-hot encoding, normalization (fit on training folds only), target transforms.
+
+\subsection{Cross Validation and Tuning}
+TODO: $5 \times 2$ cross validation, how folds are shared across the three models, and how hyperparameters were tuned (hidden nodes, encoding size, learning rate, momentum, epochs) without touching the test fold.
+
+\subsection{Evaluation Metrics}
+TODO: Classification error / cross-entropy, mean squared error, and the statistical test used to compare models.
+
+\section{Algorithms Implemented}
+\subsection{Linear Networks}
+TODO: Logistic regression (softmax + cross-entropy) and linear regression by gradient descent.
+
+\subsection{Feedforward Network with Backpropagation}
+TODO: Topology (Input $\Rightarrow$ Hidden 1 $\Rightarrow$ Hidden 2 $\Rightarrow$ Prediction), hidden activation choice, momentum, weight initialization, loss functions.
+
+\subsection{Autoencoder-Based Network}
+TODO: Under-complete autoencoder with loss $L(\mathbf{x}, \hat{\mathbf{x}}) = \|\mathbf{x} - \hat{\mathbf{x}}\|_2^2$, removal of the decoder, and the prediction layers. Explain and justify whether encoder weights are frozen or fine-tuned.
+
+\section{Experimental Results}
+TODO: Tables and figures with explanation.
+
+\section{Analysis and Discussion}
+TODO
+
+\section{Conclusion}
+TODO
+
+\bibliography{references}
+
+\newpage
+
+\appendix
+\section{Main Lessons Learned}
+TODO
+
+\section{Delineation of Work}
+\begin{itemize}
+    \item \textbf{Isaac Wilkey:} TODO
+    \item \textbf{Riley Smith:} TODO
+\end{itemize}
+
+\end{document}
