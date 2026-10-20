@@ -1,0 +1,6 @@
+{
+  "task": "regression",
+  "target": "rings",
+  "target_mean": 9.933684462532918,
+  "target_std": 3.2241690320681284
+}

@@ -1,0 +1,10 @@
+{
+  "task": "classification",
+  "target": "class",
+  "classes": [
+    "acc",
+    "good",
+    "unacc",
+    "vgood"
+  ]
+}

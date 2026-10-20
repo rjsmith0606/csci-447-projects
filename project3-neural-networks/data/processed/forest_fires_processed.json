@@ -1,0 +1,6 @@
+{
+  "task": "regression",
+  "target": "area",
+  "target_mean": 1.1110257652960878,
+  "target_std": 1.398435955883445
+}
