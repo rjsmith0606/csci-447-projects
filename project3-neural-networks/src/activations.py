@@ -10,27 +10,29 @@ import numpy as np
 
 
 def sigmoid(z: np.ndarray) -> np.ndarray:
-    raise NotImplementedError
+    return 1 / (1 + np.exp(-z))
 
 
 def sigmoid_derivative(a: np.ndarray) -> np.ndarray:
     """Derivative expressed in terms of the activation a = sigmoid(z)."""
-    raise NotImplementedError
+    return a * (1 - a)
 
 
 def tanh(z: np.ndarray) -> np.ndarray:
-    raise NotImplementedError
+    return np.tanh(z)
 
 
 def tanh_derivative(a: np.ndarray) -> np.ndarray:
     """Derivative expressed in terms of the activation a = tanh(z)."""
-    raise NotImplementedError
+    return 1 - a ** 2
 
 
 def softmax(z: np.ndarray) -> np.ndarray:
     """Row-wise, numerically stable softmax."""
-    raise NotImplementedError
+    z = z - z.max(axis=1, keepdims=True)  # subtract row max so exp() can't overflow
+    e = np.exp(z)
+    return e / e.sum(axis=1, keepdims=True)
 
 
 def linear(z: np.ndarray) -> np.ndarray:
-    raise NotImplementedError
+    return z
