@@ -35,8 +35,6 @@ class LogisticRegression:
         """
 
         n = X.shape[0]
-        if batch_size is None or batch_size > n:
-            batch_size = n # full-batch gradient descent
 
         # Full-batch if no size is given, or if the requested size is bigger than the data
         if batch_size is None or batch_size > n:
