@@ -17,7 +17,7 @@ from src.neural_network import NeuralNetwork
 
 
 class Autoencoder:
-    def __init__(self, n_inputs: int, n_encoding: int, hidden_activation: str = "sigmoid", learning_rate: float = 0.01, momentum: float = 0.0, seed: int | None = None):
+    def __init__(self, n_inputs: int, n_encoding: int, hidden_activation: str = "tanh", learning_rate: float = 0.01, seed: int | None = None):
             if n_encoding >= n_inputs:
                 raise ValueError(
                     "Encoding layer must have fewer nodes than the input layer.")
@@ -26,7 +26,6 @@ class Autoencoder:
             self.n_encoding = n_encoding
             self.hidden_activation = hidden_activation
             self.learning_rate = learning_rate
-            self.momentum = momentum
             self.seed = seed
 
             # Regression feedforward network
@@ -55,8 +54,8 @@ class AutoencoderPredictor:
 
     def __init__(self, n_inputs, n_encoding, n_hidden2,
                  n_outputs, mode="classification",
-                 hidden_activation="sigmoid",
-                 learning_rate=0.01, ae_epochs=100,
+                 hidden_activation="tanh",
+                 learning_rate=0.01, ae_epochs=500,
                  freeze_encoder=True, seed=None):
         self.n_inputs = n_inputs
         self.n_encoding = n_encoding
