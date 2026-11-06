@@ -20,7 +20,7 @@ from src.losses import cross_entropy, mse
 
 class NeuralNetwork:
     def __init__(self, layer_sizes: list[int], mode: str = "classification",
-                 hidden_activation: str = "tanh", learning_rate: float = 0.01,
+                 hidden_activation: str = "sigmoid", learning_rate: float = 0.01,
                  seed: int | None = None):
 
         # choose the hidden activation (the assignment allows only these two)
