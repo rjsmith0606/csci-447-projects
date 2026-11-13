@@ -29,7 +29,7 @@ Bozeman, MT, USA
 \maketitle
 
 \begin{abstract}
-TODO
+This paper delves into the processes of different types of Neural Networks for Classification and Regression. We specifically look at linear networks, feedforward networks with two hidden layers and autoencoder-based networks. For classification and regression we have six diverse datasets from the UCI Machine Learning Repository. While using the linear networks as a baseline, we explore the effects increasing model complexity can have on accuracy of our predictions. By using a $5 \times 2$ cross-validation framework, our results establish that the use of two-hidden-layer networks have better performance than the linear model. However, the autoencoder tends to provide a more robust performance across all of the datasets. This may show that through the use of autoencoders to do unsupervised feature extraction the initialization of these networks can allow for more generalization. 
 
 \end{abstract}
 
@@ -66,14 +66,14 @@ We utilize six datasets from the UCI repository \citep{uci_repository}. Three ar
     Forest Fires      & Regression     & 517  & 12 (10/2) \\
     \hline
     \end{tabular}
-    \caption{Summary of the six datasets used in this assignment.}
+    \caption{Summary of the six datasets used in this paper.}
     \label{tab:datasets}
 \end{table}
 
 \subsection{Preprocessing}
 We apply the following preprocessing steps to the UCI datasets:
 \begin{itemize}
-    \item \textbf{Breast Cancer:} We replace missing values (marked with "?") with the mode of mode of that feature. We also drop the sample code number feature as it is a unique identifier. Finally, we apply z score normalization to all numerical features.
+    \item \textbf{Breast Cancer:} We replace missing values (marked with "?") with the mode of that feature. We also drop the sample code number feature as it is a unique identifier. Finally, we apply z score normalization to all remaining features.
     \item \textbf{Car Evaluation:} We label encode all features to maintain their order as integers. We then apply z score normalization to all features.
     \item \textbf{House Votes:} We one hot encode all features.
     \item \textbf{Abalone:} We one hot encode the only categorical feature. We then apply z score normalization to all features.
@@ -82,7 +82,7 @@ We apply the following preprocessing steps to the UCI datasets:
 \end{itemize}
 
 \subsection{Evaluation Protocol}
-To obtain a fair comparison between each model, we employ a $5 \times 2$ cross-validation framework. The data is split into two halves; we train on half and test on the other, then reverse the roles. This process is repeated five times with different random splits. We repeat this process for each model.
+To obtain a fair comparison between each model, we employ a $5 \times 2$ cross-validation framework. The data is split into two halves. We train on half and test on the other, then reverse the roles. This process is repeated five times with different random splits. We repeat this process for each model.
 
 For classification we report the classification error, the fraction of test instances predicted incorrectly:
 \begin{equation}
@@ -95,7 +95,7 @@ and for regression we report the mean squared error,
 where $N$ is the number of test instances.
 
 \section{Algorithms Implemented}
-TODO
+This section describes the algorithms implemented for this project. We begin with the linear networks, logistic regression and linear regression. We then then describe the two-hidden-layer neural network and finally the autoencoder and autoencoder-based network. We also describe the algorithm we use for hyperparameter tuning, random search.
 
 \subsection{Logistic Regression}
 Logistic regression is a linear network with no hidden layers. The $d$ input features connect directly to an output layer with one node per class. For $K$ classes, class $C_i$ has a weight vector $\mathbf{w}_i \in \mathbb{R}^{d}$ and a bias $w_{i0}$. For an input $\mathbf{x}$, the output for class $C_i$ is given by the softmax function:
@@ -130,18 +130,64 @@ We minimize this loss using gradient descent. This gives the following update:
 where $\eta$ is the learning rate. We train with mini-batch gradient descent. The weights are initialized from a normal distribution with mean $0$ and standard deviation $0.01$. The bias is initialized to zero. In each epoch, we shuffle the training set, divide it into batches, and update $\mathbf{w} \leftarrow \mathbf{w} + \Delta\mathbf{w}$ and $w_{0} \leftarrow w_{0} + \Delta w_{0}$ after each batch. We treat the learning rate, batch size, and number of epochs as tuned hyperparameters (Section~\ref{sec:tuning}).
 
 \subsection{Neural Network}
-TODO
+Our neural network is a network with two hidden layers. The $d$ input features connect to a hidden layer of $H_1$ nodes. The nodes of the first hidden layer then connect to another hidden layer of $H_2$ nodes. Finally, the nodes of the second hidden layer connect to an output layer with $K$ nodes for classification and one node for regression. Each layer is fully connected to the next. Hidden node $h$ in layer 1 has a weight vector $\mathbf{w}^{(1)}_h \in \mathbb{R}^{d}$ and a bias $w^{(1)}_{h0}$. Hidden node $l$ in layer 2 has a weight vector $\mathbf{w}^{(2)}_l \in \mathbb{R}^{H_1}$ and a bias $w^{(2)}_{l0}$. Output node $i$ has a weight vector $\mathbf{v}_i \in \mathbb{R}^{H_2}$ and a bias $v_{i0}$.
+
+\paragraph{Forward phase.}For an input $\mathbf{x}$, each hidden layer applies a linear combination followed by the logistic activation function $\sigma(a) = 1/(1 + e^{-a})$:
+\begin{align}
+    z^{(1)}_h &= \sigma\!\left(\mathbf{w}^{(1)\top}_h \mathbf{x} + w^{(1)}_{h0}\right)\\
+    z^{(2)}_l &= \sigma\!\left(\mathbf{w}^{(2)\top}_l \mathbf{z}^{(1)} + w^{(2)}_{l0}\right)
+\end{align}
+The output layer is softmax for classification and linear for regression:
+\begin{equation}
+    y_i = \frac{\exp\left[\mathbf{v}_i^{\top}\mathbf{z}^{(2)} + v_{i0}\right]}{\sum_{j=1}^{K}\exp\left[\mathbf{v}_j^{\top}\mathbf{z}^{(2)} + v_{j0}\right]}
+    \qquad \text{or} \qquad
+    y = \mathbf{v}^{\top}\mathbf{z}^{(2)} + v_{0}
+\end{equation}
+The network minimizes the cross-entropy loss for classification, and the squared error for regression. We average the loss/error over a batch $B$ of instances.
+
+\paragraph{Backward phase.} Backpropagation passes the output error backward through the network and updates each weight in proportion to its share of that error. At the output layer, the error for node $i$ is the difference between the target and the output:
+\begin{equation}
+    \delta^{(3)}_i = r_i^t - y_i^t
+\end{equation}
+Each hidden node receives the errors of the nodes it feeds, weighted by the connecting weights and scaled by $z(1 - z)$:
+\begin{align}
+    \delta^{(2)}_l &= z^{(2)}_l\left(1 - z^{(2)}_l\right) \sum_{i} \delta^{(3)}_i \, v_{il} \\
+    \delta^{(1)}_h &= z^{(1)}_h\left(1 - z^{(1)}_h\right) \sum_{l=1}^{H_2} \delta^{(2)}_l \, w^{(2)}_{lh}
+\end{align}
+Each weight is then updated by the average error at the node it feeds into multiplied by the value it carries into that node:
+\begin{align}
+    \Delta v_{il} &= \frac{\eta}{|B|}\sum_{t \in B}\delta^{(3)}_i\, z^{(2)}_l, &
+    \Delta w^{(2)}_{lh} &= \frac{\eta}{|B|}\sum_{t \in B}\delta^{(2)}_l\, z^{(1)}_h, &
+    \Delta w^{(1)}_{hj} &= \frac{\eta}{|B|}\sum_{t \in B}\delta^{(1)}_h\, x_j
+\end{align}
+where $\eta$ is the learning rate. The bias updates are the same sums with the input replaced by one.
+
+\paragraph{Training.} We train with mini-batch gradient descent.. The weights are initialized from a normal distribution with mean $0$ and standard deviation $0.01$. The biases are initialized to zero. In each epoch, we shuffle the training set and divide it into batches. For each batch, we run the forward phase, compute the $\delta$ terms backward through all three weight layers, and update every weight and bias. The numbers of nodes $H_1$ and $H_2$, the learning rate, the batch size, and the number of epochs are tuned hyperparameters (Section~\ref{sec:tuning}).
 
 \subsection{Autoencoder}
-TODO
+The autoencoder is a neural network that is designed to learn a refined and unsupervised version of the input data. It does this by reconstructing the data through encoding and decoding. In the encoding it transforms the input into a latent space. In decoding it takes that latent space and attempts to map it back to the original input. The overall goal is to minimize the mean squared error (MSE) between the original input and the reconstructed input. 
+
+\paragraph{}
+In this project the autoencoder is "under-complete" meaning the encoding layer is bounded by having fewer nodes than the input layer. With this constraint in place the network is forced to perform non-linear dimensionality reduction and feature extraction. The goal by doing this is to find the most impactful patterns in the data.
 
 \subsection{Autoencoder-Based Network}
-TODO
+The next part of the data pipeline is the process of shifting from unsupervised feature extraction to a supervised prediction. For this the decoding output layer of the autoencoder is removed. With the encoding layer from the original autoencoder present for the beginning of the new feedforward network two more layers are added. The next layer added is the second hidden layer and then the final prediction layer is tacked on. Depending on the data and desired output the prediction layer is done using softmax for classification or a continuous linear representation for regression.
+
+\paragraph{}
+The architecture built from this follows the sequence of input to encoding to hidden layer 2 and lastly prediction. Following this we train the entire network using backpropagation. For this implementation we did tuning over the network instead of hard setting the encoding weights. This allowed the networks to adjust the features that were learned in the autoencoder to better fit the requirements of the targets. Through this it optimizes the feature extraction for the given task. 
 
 \subsection{Hyperparameter Tuning}
 \label{sec:tuning}
-TODO
-
+To tune the hyperparameters for these algorithms, we use random search. Before cross-validation, we hold out a random 20\% of each data set as a validation set. This validation set is used only for tuning. For a fixed number of iterations, we sample a candidate combination of hyperparameter values, train the resulting model on the remaining 80\% of the data, and evaluate it on the validation set. We retain whichever candidate achieves the lowest error. We define the search space for each hyperparameter as follows:
+\begin{itemize}
+    \item \textbf{Learning Rate:} We sample $\eta$ log-uniformly from $[0.001, 1.0]$.
+    \item \textbf{Batch Size:} We sample an integer uniformly from $[8, \max(8, N/10)]$, where $N$ is the number of instances available for tuning. The upper bound scales the batch size with the size of the data set.
+    \item \textbf{Epochs:} We sample uniformly from the 20 values $\{50, 100, 150, \dots, 1000\}$.
+    \item \textbf{Number of Hidden Layer 1 Nodes:} We sample an integer uniformly from $[2, \min(2d, 32)]$, where $d$ is the number of input features.
+    \item \textbf{Number of Hidden Layer 2 Nodes:} We sample an integer uniformly from $[2, \min(2d, 32)]$. This range is used for both the two-hidden-layer network and the autoencoder-based network.
+    \item \textbf{Number of Autoencoder Nodes:} We sample an integer uniformly from $[2, d-1]$ so the encoding layer always has fewer nodes than the input layer.
+\end{itemize}
+We run random search for 30 iterations for the linear networks and for 60 iterations for the 2-hidden-layer and autoencoder-based networks.
 
 \section{Experimental Results}
 We evaluate each model using $5 \times 2$ cross validation on each of the six datasets, as described in Section 2.3. We report classification error for the three classification datasets and mean squared error for the three regression datasets. Every value is the mean over the ten test folds.
@@ -164,7 +210,7 @@ Table~\ref{tab:classification-results} reports classification error for the thre
     \label{tab:classification-results}
 \end{table}
 
-The two-hidden-layer network lowers the mean error relative to the linear network on Breast Cancer and Car Evaluation, by 11.7\% and 76.8\% respectively. On House Votes it raises the error by 57.2\%. The autoencoder-based network lowers the error relative to the linear network on all three data sets, by 3.0\% on Breast Cancer, 6.4\% on Car Evaluation, and 4.2\% on House Votes It is also the best model on House Votes.
+The two-hidden-layer network lowers the mean error relative to the linear network on Breast Cancer and Car Evaluation, by 11.7\% and 76.8\% respectively. On House Votes it raises the error by 57.2\%. The autoencoder-based network lowers the error relative to the linear network on all three data sets, by 3.0\% on Breast Cancer, 6.4\% on Car Evaluation, and 4.2\% on House Votes. It is also the best model on House Votes.
 
 \subsection{Regression}
 Table~\ref{tab:regression-results} reports mean squared error for the three models on the three regression datasets, and Figure~\ref{fig:error} (right) shows the same comparison. Forest Fires errors are on the log scale of the transformed target described in Section 2.2.
@@ -256,20 +302,32 @@ Table~\ref{tab:autoencoder-tuning} reports the tuned hyperparamaters for the aut
     \label{tab:autoencoder-tuning}
 \end{table}
 
+
 \section{Analysis and Discussion}
-TODO
+From the results of this project that there is a clear performance increase when going from linear models to the deeper neural networks. Across the six different datasets the auto-encoded networks showed consistently lower error rates. It outperformed both the  linear and two-hidden-layer networks. For example, on the regressive Computer Hardware data, the autoencoder-based network achieved an MSE of 0.2286, compared to 0.2464 for the linear model and 0.2790 for the two-hidden-layer network. Through this we came to understand that in many cases unsupervised training beforehand provides a more stable and generalizable initialization for the weights. This can reduce the overall risk of overfitting that from time to time negatively effected the two-hidden-layer network.
 
 \subsection{Preprocessing}
-TODO
+The use of preprocessing was important for the ability of the backpropagation algorithm to achieve convergence. Through Z-score normalization it ensured that features having larger magnitudes were not over expressed in the gradient updates. In turn this allowed for more stable rates of learning across the datasets. For the Forest Fires dataset a log transformation was performed due to the exponential nature of the data. This brought down issues with high MSE due to outliers making it harder for the models to converge. This problem can be see in the still relatively high MSE of 1.0387 of the autoencoder model which had the best performance.  
 
 \subsection{Hypotheses}
-TODO
+The results of this project show strong support for hypothesis 1 that the two-hidden-layer neural networks will outperform the linear networks on a majority of the six datasets. The greatest improvement was in the Car Evaluation classification. The error went from 0.1702 (Linear) to 0.0395 (Two-Hidden-Layer), which is a error reduction of about 76.8\%. This underlines that the decision boundaries for the datasets are non-linear and can be modeled more effectively by having hidden layers.
+
+\paragraph{}
+For hypothesis 2 since the autoencoded networks only preformed best for three out of the six datasets it is proven false. In the case of House Votes classification, the autoencoder-based network achieved the lowest error of 0.0385. This outperformed both the linear model with an MSE of 0.0402 and the two-hidden-layer network with an MSE of 0.0632. While in the case of regression, the autoencoded network had the best results for both Computer Hardware with an MSE of 0.2286 and Forest Fires with an MSE of 1.0387, it did not show consistent performance above the two-hidden-layer network for the majority of the tests. In spite of this, the results discussed show that initializing the first hidden layer using an under-complete autoencoder can still give the model an advantage in its feature extraction. This can allow for more generalization across a wider variety of data types in certain cases.
 
 \subsection{Tuning}
-TODO
+Random search hyperparameter tuning requires us to define a search space for each hyperparameter. We chose the following ranges for the search spaces so that the search includes a wide variety of models. The ranges are heuristic choices.
+\begin{itemize}
+    \item \textbf{Learning rate;} We sample on a log scale, because each order of magnitude matters equally. Below $0.001$, training barely moves. Above $1.0$, training tends to diverge.
+    \item \textbf{Batch size:} The lower bound of 8 avoids very noisy updates. The upper bound $N/10$ gives at least ten updates per epoch. It scales with the size of the data set.
+    \item \textbf{Epochs:} We search 50 to 1000 epochs. The upper limit keeps training time reasonable.
+    \item \textbf{Hidden layer sizes:} The upper bound is $2d$, so wider data sets get wider layers. We cap it at 32 to limit training time. The lower bound of 2 avoids a one-node bottleneck.
+    \item \textbf{Encoding size:} The assignment requires fewer encoding nodes than inputs, so we sample from $[2, d-1]$.
+\end{itemize}
+Due to computational constraints, we ran only 30 or 60 trials per model. This may cover only a small part of the search space.
 
 \section{Conclusion}
-TODO
+This project shows the deeper interactions between linear networks and deeper feedforward architectures for classification and regression tasks depending on the dataset. The results strongly support the use of non-linear models in comparison to the simpler linear baseline models for datasets similar to the six UCI datasets. It was highly efficient to use a under-complete autoencoder for the unsupervised training done before the prediction networks for feature extraction. Through the use of weights obtained by refactoring the input data, the autoencoded model obtained the most consistent and generalizable performance. Overall, the use of unsupervised learning and dimensionality reduction with supervised fine-tuning demonstrated an effective way to create a model capable of generalization and predictive accuracy. 
 
 \bibliography{references}
 
@@ -277,12 +335,13 @@ TODO
 
 \appendix
 \section{Main Lessons Learned}
-TODO
+One of the main takeaways from this project was the amount of improvements that were made due to data preprocessing. With the use of a z-score normalization and a log transformation we were able to get the algorithms to learn the weights at a faster rate. This is because the learning rate can be higher since the shape of the data is smoothed out in a sense. The use of an autoencoder can also give these algorithms a basis from which they start working instead of a random initialization. Through this the models get a basic structure of the data before seeing any labels.
 
 \section{Delineation of Work}
 \begin{itemize}
-    \item \textbf{Isaac Wilkey:} Responsible for the implementation of the core machine learning algorithms, specifically developing the decision tree growth logic using Gain Ratio for classification and Mean Squared Error for regression, as well as the reduced error pruning system. Additionally, I authored the Abstract, the Algorithms Implemented section, and the Conclusion of the final report.
-    \item \textbf{Riley Smith:} Responsible for the implementation of the preprocessing and evaluation algorithms. In the report, I authored the Problem Statement and Hypothesis, Experimental Approach and Project Design, Experimental Results, and Analysis and Discussion sections. 
+    \item \textbf{Isaac Wilkey:} 
+    Implemented the autoencoder along with the autoencoder predictor for classification and regression. For the report, I authored the Abstract, Autoencoder, Autoencoder-Based Network, Analysis and Discussion, Preprocessing, Hypotheses, Conclusion and Appendix A. 
+    \item \textbf{Riley Smith:} Responsible for the implementation of the preprocessing, linear network, two-hidden-layer network, tuning and evaluation algorithms. In the report, I authored the Problem Statement and Hypothesis, Experimental Approach and Project Design, half of the Algorithms Implemented section, and Experimental Results.
 \end{itemize}
 
 \end{document}
