@@ -14,7 +14,7 @@ The class should also support:
 
 import numpy as np
 
-from src.activations import sigmoid, sigmoid_derivative, tanh, tanh_derivative, softmax, linear
+from src.activations import sigmoid, sigmoid_derivative, softmax, linear
 from src.losses import cross_entropy, mse
 
 
@@ -26,8 +26,6 @@ class NeuralNetwork:
         # choose the hidden activation (the assignment allows only these two)
         if hidden_activation == "sigmoid":
             self.act, self.act_deriv = sigmoid, sigmoid_derivative
-        elif hidden_activation == "tanh":
-            self.act, self.act_deriv = tanh, tanh_derivative
         else:
             raise ValueError(f"Unknown hidden_activation: {hidden_activation}")
 

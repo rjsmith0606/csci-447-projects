@@ -7,12 +7,12 @@
 \usepackage{appendix}
 
 \jmlrheading{26}{2026}{1-\pageref{LastPage}}{11/11/26}{11/11/26}{25-0040}{Isaac Wilkey and Riley Smith}
-\ShortHeadings{Linear, Feedforward, and Autoencoder Networks}{Wilkey and Smith}
+\ShortHeadings{TODO}{Wilkey and Smith}
 \firstpageno{1}
 
 \begin{document}
 
-\title{Linear, Feedforward, and Autoencoder-Based Neural Networks for Classification and Regression}
+\title{TODO}
 
 \author{\name Isaac Wilkey \email isaac.wilkey@student.montana.edu\\
 \addr Department of Computer Science \\
@@ -33,21 +33,22 @@ TODO
 
 \end{abstract}
 
-\begin{keywords}neural networks, backpropagation, autoencoder, logistic regression, hyperparameter tuning $5 \times 2$ cross validation\end{keywords}
+\begin{keywords}TODO\end{keywords}
 
 \section{Problem Statement and Hypotheses}
-The goal of this project is to implement and analyze neural networks for classification and regression. A linear network maps inputs directly to outputs and can only model linear relationships. Hidden layers allow nonlinear modeling but add hyperparameters and a risk of overfitting. An autoencoder learns a compressed representation of the inputs without using labels. We implement a linear network, a feedforward network with two hidden layers, and a network whose first hidden layer is initialized from an autoencoder.
+TODO
 
 We test the following hypotheses using $5 \times 2$ cross validation \citep{alpaydin2020}:
 \begin{enumerate}
-    \item \textbf{H1:} The two-hidden-layer neural networks will perform better in terms of classification error/mean squared error than the linear networks on a majority of the six datasets.
-    \item \textbf{H2:} The autoencoder-based networks will perform better in terms of classification error/mean squared error than the two-hidden-layer neural networks on a majority of the six datasets.
+    \item \textbf{H1:} TODO
+    \item \textbf{H2:} TODO
 \end{enumerate}
-H1 is falsified if the linear network has the lower classification error/mean squared error than the two-hidden-layer neural network on three or more data sets. H2 is falsified if the two-hidden-layer neural network has the lower classification error/mean squared error than the autoencoder-based network on three or more data sets.
+UPDATE H1 is falsified if the linear network has the lower classification error/mean squared error than the two-hidden-layer neural network on three or more data sets. H2 is falsified if the two-hidden-layer neural network has the lower classification error/mean squared error than the autoencoder-based network on three or more data sets.
 
 
 \section{Experimental Approach and Project Design}
-Our experimental pipeline consisted of data acquisition, preprocessing, model creation, tuning, and evaluation.
+Our experimental pipeline consisted of data acquisition, preprocessing, model creation,
+tuning, and evaluation.
 
 \subsection{Datasets}
 We utilize six datasets from the UCI repository \citep{uci_repository}. Three are classification tasks and three are regression tasks. Table~\ref{tab:datasets} summarizes the datasets.
@@ -66,14 +67,14 @@ We utilize six datasets from the UCI repository \citep{uci_repository}. Three ar
     Forest Fires      & Regression     & 517  & 12 (10/2) \\
     \hline
     \end{tabular}
-    \caption{Summary of the six datasets used in this assignment.}
+    \caption{Summary of the six datasets used in this paper.}
     \label{tab:datasets}
 \end{table}
 
 \subsection{Preprocessing}
 We apply the following preprocessing steps to the UCI datasets:
 \begin{itemize}
-    \item \textbf{Breast Cancer:} We replace missing values (marked with "?") with the mode of mode of that feature. We also drop the sample code number feature as it is a unique identifier. Finally, we apply z score normalization to all numerical features.
+    \item \textbf{Breast Cancer:} We replace missing values (marked with "?") with the mode of that feature. We also drop the sample code number feature as it is a unique identifier. Finally, we apply z score normalization to all remaining features.
     \item \textbf{Car Evaluation:} We label encode all features to maintain their order as integers. We then apply z score normalization to all features.
     \item \textbf{House Votes:} We one hot encode all features.
     \item \textbf{Abalone:} We one hot encode the only categorical feature. We then apply z score normalization to all features.
@@ -82,7 +83,7 @@ We apply the following preprocessing steps to the UCI datasets:
 \end{itemize}
 
 \subsection{Evaluation Protocol}
-To obtain a fair comparison between each model, we employ a $5 \times 2$ cross-validation framework. The data is split into two halves; we train on half and test on the other, then reverse the roles. This process is repeated five times with different random splits. We repeat this process for each model.
+To obtain a fair comparison between each model, we employ a $5 \times 2$ cross-validation framework. The data is split into two halves. We train on half and test on the other, then reverse the roles. This process is repeated five times with different random splits. We repeat this process for each model.
 
 For classification we report the classification error, the fraction of test instances predicted incorrectly:
 \begin{equation}
@@ -97,54 +98,21 @@ where $N$ is the number of test instances.
 \section{Algorithms Implemented}
 TODO
 
-\subsection{Logistic Regression}
-Logistic regression is a linear network with no hidden layers. The $d$ input features connect directly to an output layer with one node per class. For $K$ classes, class $C_i$ has a weight vector $\mathbf{w}_i \in \mathbb{R}^{d}$ and a bias $w_{i0}$. For an input $\mathbf{x}$, the output for class $C_i$ is given by the softmax function:
-\begin{equation}
-    y_i = P(C_i|\mathbf{x}) = \frac{\exp\left[\mathbf{w}_i^{\top}\mathbf{x} + w_{i0}\right]}{\sum_{j=1}^{K}\exp\left[\mathbf{w}_j^{\top}\mathbf{x} + w_{j0}\right]}
-\end{equation}
-The predicted class is output with the largest $y_i$. The network minimizes the cross-entropy loss, which we average over a batch $B$ of instances:
-\begin{equation}
-    L = -\frac{1}{|B|}\sum_{t \in B}\sum_{i=1}^{K} r_i^t \log y_i^t
-\end{equation}
-For softmax combined with cross-entropy, the gradient simplifies to the difference between the labels and the outputs. This gives the following update for each class:
-\begin{equation}
-    \Delta\mathbf{w}_i = \frac{\eta}{|B|}\sum_{t \in B}(r_i^t - y_i^t)\,\mathbf{x}^t, \qquad
-    \Delta w_{i0} = \frac{\eta}{|B|}\sum_{t \in B}(r_i^t - y_i^t)
-\end{equation}
-where $\eta$ is the learning rate. We train with mini-batch gradient descent. The weights are initialized from a normal distribution with mean $0$ and standard deviation $0.01$. The biases are initialized to zero. In each epoch, we shuffle the training set, divide it into batches, and update $\mathbf{w}_i \leftarrow \mathbf{w}_i + \Delta\mathbf{w}_i$ and $w_{i0} \leftarrow w_{i0} + \Delta w_{i0}$ after each batch for every class. We treat the learning rate, batch size, and number of epochs as tuned hyperparameters (Section~\ref{sec:tuning}).
-
-\subsection{Linear Regression}
-Linear regression is a linear network with no hidden layers. The $d$ input features connect to a single output node. The output node has a weight vector $\mathbf{w} \in \mathbb{R}^{d}$ and a bias $w_0$. For an input $\mathbf{x}$, the prediction is:
-\begin{equation}
-    y = \mathbf{w}^{\top}\mathbf{x} + w_0
-\end{equation}
-The network minimizes the squared error between the predictions and the targets, which we average over a batch $B$ of instances:
-\begin{equation}
-    L = \frac{1}{|B|}\sum_{t \in B}(r^t - y^t)^2
-\end{equation}
-We minimize this loss using gradient descent. This gives the following update:
-\begin{equation}
-    \Delta\mathbf{w} = \frac{\eta}{|B|}\sum_{t \in B}(r^t - y^t)\,\mathbf{x}^t, \qquad
-    \Delta w_0 = \frac{\eta}{|B|}\sum_{t \in B}(r^t - y^t)
-\end{equation}
-where $\eta$ is the learning rate. We train with mini-batch gradient descent. The weights are initialized from a normal distribution with mean $0$ and standard deviation $0.01$. The bias is initialized to zero. In each epoch, we shuffle the training set, divide it into batches, and update $\mathbf{w} \leftarrow \mathbf{w} + \Delta\mathbf{w}$ and $w_{0} \leftarrow w_{0} + \Delta w_{0}$ after each batch. We treat the learning rate, batch size, and number of epochs as tuned hyperparameters (Section~\ref{sec:tuning}).
-
-\subsection{Neural Network}
+\subsection{Genetic Algorithm}
 TODO
 
-\subsection{Autoencoder}
+\subsection{Differential Evolution}
 TODO
 
-\subsection{Autoencoder-Based Network}
+\subsection{Particle Swarm Optimization}
 TODO
 
 \subsection{Hyperparameter Tuning}
 \label{sec:tuning}
 TODO
 
-
-\section{Experimental Results}
-We evaluate each model using $5 \times 2$ cross validation on each of the six datasets, as described in Section 2.3. We report classification error for the three classification datasets and mean squared error for the three regression datasets. Every value is the mean over the ten test folds.
+\section{Experimental Results - UPDATE}
+We evaluate each training method using $5 \times 2$ cross validation on each of the six datasets, as described in Section 2.3. We report classification error for the three classification datasets and mean squared error for the three regression datasets. Every value is the mean over the ten test folds.
 
 \subsection{Classification}
 Table~\ref{tab:classification-results} reports classification error for the three models on the three classification datasets, and Figure~\ref{fig:error} (left) shows the same comparison.
@@ -164,7 +132,7 @@ Table~\ref{tab:classification-results} reports classification error for the thre
     \label{tab:classification-results}
 \end{table}
 
-The two-hidden-layer network lowers the mean error relative to the linear network on Breast Cancer and Car Evaluation, by 11.7\% and 76.8\% respectively. On House Votes it raises the error by 57.2\%. The autoencoder-based network lowers the error relative to the linear network on all three data sets, by 3.0\% on Breast Cancer, 6.4\% on Car Evaluation, and 4.2\% on House Votes It is also the best model on House Votes.
+The two-hidden-layer network lowers the mean error relative to the linear network on Breast Cancer and Car Evaluation, by 11.7\% and 76.8\% respectively. On House Votes it raises the error by 57.2\%. The autoencoder-based network lowers the error relative to the linear network on all three data sets, by 3.0\% on Breast Cancer, 6.4\% on Car Evaluation, and 4.2\% on House Votes. It is also the best model on House Votes.
 
 \subsection{Regression}
 Table~\ref{tab:regression-results} reports mean squared error for the three models on the three regression datasets, and Figure~\ref{fig:error} (right) shows the same comparison. Forest Fires errors are on the log scale of the transformed target described in Section 2.2.
@@ -193,28 +161,7 @@ Forest Fires       & 1.1589      & 1.0394      & 1.0387 \\
 
 The two-hidden-layer network lowers the mean squared error relative to the linear network on Abalone and Forest Fires, by 10.4\% and 10.3\% respectively, but raises it by 13.2\% on Computer Hardware. The autoencoder-based network lowers the error on all three data sets, by 7.2\% on Abalone, 7.2\% on Computer Hardware, and 10.4\% on Forest Fires. It is the best model on Computer Hardware and Forest Fires. The two-hidden-layer network is the best on Abalone. 
 
-\subsection{Linear Network Hyperparameters}
-Table~\ref{tab:linear-tuning} reports the tuned hyperparamaters for the linear models for the six datasets.
-
-\begin{table}[h]
-    \centering
-    \begin{tabular}{lccc}
-    \hline
-    Dataset & Learning Rate & Batch Size & Epochs \\
-    \hline
-    Breast Cancer      & 0.9809    & 26   & 950 \\
-    Car Evaluation     & 0.6341   & 124 & 850 \\
-    House Votes        & 0.5474    & 29    & 50 \\
-    Abalone            & 0.0702  & 257 & 650 \\
-    Computer Hardware  & 0.1545   & 8  & 200 \\
-    Forest Fires       & 0.0661   & 41  & 300 \\
-    \hline
-    \end{tabular}
-    \caption{Tuned learning rate, batch size, and epochs for the linear networksnetworks for the six datasets.}
-    \label{tab:linear-tuning}
-\end{table}
-
-\subsection{Two-Hidden-Layer Network Hyperparameters}
+\subsection{Backpropagation Network Hyperparameters}
 Table~\ref{tab:hidden-tuning} reports the tuned hyperparamaters for the two-hidden-layer networks for the six datasets.
 
 \begin{table}[h]
@@ -235,7 +182,28 @@ Table~\ref{tab:hidden-tuning} reports the tuned hyperparamaters for the two-hidd
     \label{tab:hidden-tuning}
 \end{table}
 
-\subsection{Autoencoder-Based Network Hyperparameters}
+\subsection{Genetic Algorithm Hyperparameters - UPDATE}
+Table~\ref{tab:linear-tuning} reports the tuned hyperparamaters for the linear models for the six datasets.
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{lccc}
+    \hline
+    Dataset & Learning Rate & Batch Size & Epochs \\
+    \hline
+    Breast Cancer      & 0.9809    & 26   & 950 \\
+    Car Evaluation     & 0.6341   & 124 & 850 \\
+    House Votes        & 0.5474    & 29    & 50 \\
+    Abalone            & 0.0702  & 257 & 650 \\
+    Computer Hardware  & 0.1545   & 8  & 200 \\
+    Forest Fires       & 0.0661   & 41  & 300 \\
+    \hline
+    \end{tabular}
+    \caption{Tuned learning rate, batch size, and epochs for the linear networksnetworks for the six datasets.}
+    \label{tab:linear-tuning}
+\end{table}
+
+\subsection{Differential Evolution Hyperparameters - UPDATE}
 Table~\ref{tab:autoencoder-tuning} reports the tuned hyperparamaters for the autoencoder-based networks for the six datasets.
 
 \begin{table}[h]
@@ -255,6 +223,28 @@ Table~\ref{tab:autoencoder-tuning} reports the tuned hyperparamaters for the aut
     \caption{Tuned learning rate, batch size, epochs, number of nodes in the autoencoder layer, and number of nodes in the second hidden layer for the autoencoder-based networks for the six datasets.}
     \label{tab:autoencoder-tuning}
 \end{table}
+
+\subsection{Particle Swarm Optimization Hyperparameters - UPDATE}
+Table~\ref{tab:autoencoder-tuning} reports the tuned hyperparamaters for the autoencoder-based networks for the six datasets.
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{lccccc}
+    \hline
+    Dataset & Learning Rate & Batch Size & Epochs & Autoencoder & Hidden \\
+    \hline
+    Breast Cancer      & 0.6046    & 27   & 650  & 5    & 12 \\
+    Car Evaluation     & 0.1545   & 12 & 950    & 5   & 8 \\
+    House Votes        & 0.0702    & 25    & 650     & 32    & 18 \\
+    Abalone            & 0.1570  & 21 & 950     & 9    & 15 \\
+    Computer Hardware  & 0.1545   & 8  & 800   & 5     & 8 \\
+    Forest Fires       & 0.0459   & 33  & 150    & 11    & 17 \\
+    \hline
+    \end{tabular}
+    \caption{Tuned learning rate, batch size, epochs, number of nodes in the autoencoder layer, and number of nodes in the second hidden layer for the autoencoder-based networks for the six datasets.}
+    \label{tab:autoencoder-tuning}
+\end{table}
+
 
 \section{Analysis and Discussion}
 TODO
@@ -281,8 +271,8 @@ TODO
 
 \section{Delineation of Work}
 \begin{itemize}
-    \item \textbf{Isaac Wilkey:} Responsible for the implementation of the core machine learning algorithms, specifically developing the decision tree growth logic using Gain Ratio for classification and Mean Squared Error for regression, as well as the reduced error pruning system. Additionally, I authored the Abstract, the Algorithms Implemented section, and the Conclusion of the final report.
-    \item \textbf{Riley Smith:} Responsible for the implementation of the preprocessing and evaluation algorithms. In the report, I authored the Problem Statement and Hypothesis, Experimental Approach and Project Design, Experimental Results, and Analysis and Discussion sections. 
+    \item \textbf{Isaac Wilkey:} UPDATE Implemented the autoencoder along with the autoencoder predictor for classification and regression. For the report, I authored the Abstract, Autoencoder, Autoencoder-Based Network, Analysis and Discussion, Preprocessing, Hypotheses, Conclusion and Appendix A. 
+    \item \textbf{Riley Smith:} UPDATE Responsible for the implementation of the preprocessing, linear network, two-hidden-layer network, tuning and evaluation algorithms. In the report, I authored the Problem Statement and Hypothesis, Experimental Approach and Project Design, half of the Algorithms Implemented section, and Experimental Results.
 \end{itemize}
 
 \end{document}

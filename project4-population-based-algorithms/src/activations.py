@@ -17,16 +17,6 @@ def sigmoid_derivative(a: np.ndarray) -> np.ndarray:
     """Derivative expressed in terms of the activation a = sigmoid(z)."""
     return a * (1 - a)
 
-
-def tanh(z: np.ndarray) -> np.ndarray:
-    return np.tanh(z)
-
-
-def tanh_derivative(a: np.ndarray) -> np.ndarray:
-    """Derivative expressed in terms of the activation a = tanh(z)."""
-    return 1 - a ** 2
-
-
 def softmax(z: np.ndarray) -> np.ndarray:
     """Row-wise, numerically stable softmax."""
     z = z - z.max(axis=1, keepdims=True)  # subtract row max so exp() can't overflow
