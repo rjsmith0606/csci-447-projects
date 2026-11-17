@@ -11,8 +11,7 @@ from src.losses import cross_entropy, mse
 
 class NeuralNetwork:
     def __init__(self, layer_sizes: list[int], mode: str = "classification",
-                 hidden_activation: str = "sigmoid", learning_rate: float = 0.01,
-                 seed: int | None = None):
+                 hidden_activation: str = "sigmoid", seed: int | None = None):
 
         # choose the hidden activation (the assignment allows only these two)
         if hidden_activation == "sigmoid":
@@ -29,7 +28,6 @@ class NeuralNetwork:
         
         self.layer_sizes = layer_sizes      # e.g. [d, h1, h2, K]
         self.mode = mode
-        self.learning_rate = learning_rate
         self.rng = np.random.default_rng(seed)
         self.n_layers = len(layer_sizes) - 1  # number of weight matrices
 

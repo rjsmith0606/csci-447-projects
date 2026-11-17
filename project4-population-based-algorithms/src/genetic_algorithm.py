@@ -15,7 +15,6 @@ def genetic_algorithm(network: NeuralNetwork, X, y,
         offspring = mutation(offspring, mutation_rate, rng) # Gaussian Mutation
         offspring_fitness = evaluate_fitness(offspring, network, X, y) 
         population, pop_fitness = replacement(population, pop_fitness, offspring, offspring_fitness, rng) # Steady-State Replacement
-    network.set_weights(population[np.argmin(pop_fitness)])
     return population, pop_fitness
         
 

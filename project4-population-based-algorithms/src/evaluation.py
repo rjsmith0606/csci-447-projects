@@ -8,6 +8,8 @@
 - Normalization fit on the training fold only
 """
 
+import copy
+
 import numpy as np
 from src.losses import cross_entropy
 
@@ -47,8 +49,7 @@ def five_by_two_splits(y_labels: np.ndarray, mode: str = "classification", seed:
         yield rep, 0, a, b   # train on A, test on B
         yield rep, 1, b, a   # train on B, test on A
 
-def cross_validation_loop(X, y, y_labels, model_factory, mode="classification",
-                          epochs=100, batch_size=None, seed=None):
+def cross_validation_loop(X, y, y_labels, network, params, algorithm, mode="classification", seed=0):
     """
     Run 5x2 CV (5 repetitions of 2-fold CV = 10 runs) for ONE model type on ONE data set"""
     labels_for_split = y_labels if mode == "classification" else np.zeros(len(X))
@@ -59,8 +60,8 @@ def cross_validation_loop(X, y, y_labels, model_factory, mode="classification",
         results = {"mse": []}
  
     for rep, fold, train_idx, test_idx in five_by_two_splits(labels_for_split, mode, seed=seed): # type: ignore
-        model = model_factory()
-        model.fit(X[train_idx], y[train_idx], epochs=epochs, batch_size=batch_size)
+        model = copy.deepcopy(network)  # make a fresh copy of the network for each run
+        algorithm(model, X[train_idx], y[train_idx], **params)
  
         if mode == "classification":
             results["error"].append(classification_error(y_labels[test_idx], model.predict(X[test_idx])))
