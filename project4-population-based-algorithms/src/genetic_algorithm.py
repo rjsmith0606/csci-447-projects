@@ -4,19 +4,20 @@ from src.neural_network_population_trained import NeuralNetwork
 
 def genetic_algorithm(network: NeuralNetwork, X, y, 
         pop_size: int = 20, crossover_rate: float = 0.8, mutation_rate: float = 0.1, 
-        n: int = 1000, seed: int = 0):
+        n: int = 1000, tournament_size: int = 3, seed: int = 0):
     rng = np.random.default_rng(seed)
     
     population = initialize_population(network.layer_sizes, pop_size, rng) # Laplace Distribution
     pop_fitness = evaluate_fitness(population, network, X, y)
     for _ in range(n):
-        parents = selection(population, pop_fitness, rng) # Tournament Selection
+        parents = selection(population, pop_fitness, rng, k=tournament_size) # Tournament Selection
         offspring = crossover(parents, crossover_rate, rng) # Single Point Crossover
         offspring = mutation(offspring, mutation_rate, rng) # Gaussian Mutation
         offspring_fitness = evaluate_fitness(offspring, network, X, y) 
-        population, pop_fitness = replacement(population, pop_fitness, offspring, offspring_fitness, rng) # Steady-State Replacement
+        population, pop_fitness = replacement(population, pop_fitness, offspring, offspring_fitness, k=tournament_size, rng=rng) # Steady-State Replacement
+
+    network.set_weights(population[np.argmin(pop_fitness)])  # Update network weights to best individual
     return population, pop_fitness
-        
 
 
 def initialize_population(layer_sizes, pop_size, rng):
@@ -55,7 +56,7 @@ def mutation(offspring, mutation_rate, rng):
         mask = rng.random(child.shape[0]) < mutation_rate
         child[mask] += rng.normal(0.0, 1.0, size=mask.sum())
     return offspring
-
+    
 
 
 def replacement(population, pop_fitness, offspring, offspring_fitness, rng, k: int = 3):
@@ -66,7 +67,6 @@ def replacement(population, pop_fitness, offspring, offspring_fitness, rng, k: i
         population[victim] = child
         pop_fitness[victim] = f
     return population, pop_fitness
-
 
 
 def evaluate_fitness(population, network, X, y):
