@@ -7,7 +7,7 @@ def genetic_algorithm(network: NeuralNetwork, X, y,
         n: int = 1000, tournament_size: int = 3, seed: int = 0):
     rng = np.random.default_rng(seed)
     
-    population = initialize_population(network.layer_sizes, pop_size, rng) # Laplace Distribution
+    population = initialize_population(network.layer_sizes, pop_size, rng) # Gaussian Distribution - LeCun Initialization
     pop_fitness = evaluate_fitness(population, network, X, y)
     for _ in range(n):
         parents = selection(population, pop_fitness, rng, k=tournament_size) # Tournament Selection
@@ -24,8 +24,9 @@ def initialize_population(layer_sizes, pop_size, rng):
     segments = []
     for i in range(len(layer_sizes) - 1):
         n_in, n_out = layer_sizes[i], layer_sizes[i + 1]
-        W = rng.laplace(0.0, 1.0, size=(pop_size, n_in * n_out))
-        b = rng.laplace(0.0, 1.0, size=(pop_size, n_out))
+        sd = 1.0 / np.sqrt(n_in)  # Standard deviation for Gaussian initialization
+        W = rng.normal(0.0, sd, size=(pop_size, n_in * n_out))
+        b = rng.normal(0.0, sd, size=(pop_size, n_out))
         segments += [W, b]
     return np.hstack(segments)   # shape (pop_size, n_weights), order matches fitness()
 
@@ -54,7 +55,7 @@ def crossover(parents, crossover_rate, rng):
 def mutation(offspring, mutation_rate, rng):
     for child in offspring:
         mask = rng.random(child.shape[0]) < mutation_rate
-        child[mask] += rng.normal(0.0, 1.0, size=mask.sum())
+        child[mask] += rng.normal(0.0, 0.1, size=mask.sum())
     return offspring
     
 

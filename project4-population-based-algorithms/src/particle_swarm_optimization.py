@@ -7,7 +7,7 @@ def particle_swarm_optimization(network: NeuralNetwork, X, y,
         social_update_rate: float = 1.5, n: int = 1000, seed: int = 0):
     rng = np.random.default_rng(seed)
 
-    population = initialize_population(network.layer_sizes, pop_size, rng) # Laplace Distribution
+    population = initialize_population(network.layer_sizes, pop_size, rng) # Gaussian Distribution - LeCun Initialization
     # TODO - Initialize velocities
     
     """
@@ -30,12 +30,14 @@ def particle_swarm_optimization(network: NeuralNetwork, X, y,
     """
     pass
 
+
 def initialize_population(layer_sizes, pop_size, rng):
     segments = []
     for i in range(len(layer_sizes) - 1):
         n_in, n_out = layer_sizes[i], layer_sizes[i + 1]
-        W = rng.laplace(0.0, 1.0, size=(pop_size, n_in * n_out))
-        b = rng.laplace(0.0, 1.0, size=(pop_size, n_out))
+        sd = 1.0 / np.sqrt(n_in)  # Standard deviation for Gaussian initialization
+        W = rng.normal(0.0, sd, size=(pop_size, n_in * n_out))
+        b = rng.normal(0.0, sd, size=(pop_size, n_out))
         segments += [W, b]
     return np.hstack(segments)
 
