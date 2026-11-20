@@ -4,7 +4,7 @@ from src.neural_network_population_trained import NeuralNetwork
 
 # DE/rand/1/binomial
 def differential_evolution(network: NeuralNetwork, X, y, 
-        pop_size: int = 20, scaling_factor: float = 0.5, crossover_prob: float = 0.8, 
+        pop_size: int = 20, scaling_factor: float = 0.5, crossover_prob: float = 0.2, 
         n: int = 100, seed: int = 0):
     rng = np.random.default_rng(seed)
 
@@ -51,7 +51,7 @@ def mutation(population, i, beta, rng):
 
 
 def crossover(target, donor, alpha, rng):
-    mask = rng.random(target.shape[0]) < alpha
+    mask = rng.random(target.shape[0]) >= alpha
     mask[rng.integers(target.shape[0])] = True   # j_rand: guarantee at least one donor gene
     offspring = np.where(mask, donor, target)
     return offspring
