@@ -9,6 +9,8 @@ def particle_swarm_optimization(network: NeuralNetwork, X, y,
 
     population = initialize_population(network.layer_sizes, pop_size, rng) # Gaussian Distribution - LeCun Initialization
     # TODO - Initialize velocities
+
+    pop_fitness = evaluate_fitness(population, network, X, y)
     
     """
     repeat
@@ -28,7 +30,9 @@ def particle_swarm_optimization(network: NeuralNetwork, X, y,
         end
     until stopping condition is true
     """
-    pass
+
+    network.set_weights(population[np.argmin(pop_fitness)])
+    return population, pop_fitness
 
 
 def initialize_population(layer_sizes, pop_size, rng):
